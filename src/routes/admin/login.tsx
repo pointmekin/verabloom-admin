@@ -3,6 +3,11 @@ import { ArrowLeft, Flower2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { LanguageSwitcher } from '#/components/language-switcher'
+import { Alert, AlertDescription } from '#/components/ui/alert'
+import { Button } from '#/components/ui/button'
+import { Card } from '#/components/ui/card'
+import { Input } from '#/components/ui/input'
+import { Label } from '#/components/ui/label'
 import { useLocale } from '#/lib/i18n'
 import { loginFn } from '#/server/auth'
 
@@ -49,7 +54,7 @@ function LoginPage() {
         </Link>
         <LanguageSwitcher />
       </div>
-      <section className="login-card">
+      <Card className="login-card gap-0">
         <div className="login-brand">
           <Flower2 aria-hidden="true" /> Verabloom
         </div>
@@ -57,16 +62,16 @@ function LoginPage() {
         <h1>{t('loginTitle')}</h1>
         <p className="login-copy">{t('loginBody')}</p>
         <form onSubmit={submit} className="login-form">
-          <label htmlFor="email">{t('email')}</label>
-          <input
+          <Label htmlFor="email">{t('email')}</Label>
+          <Input
             id="email"
             name="email"
             type="email"
             autoComplete="username"
             required
           />
-          <label htmlFor="password">{t('password')}</label>
-          <input
+          <Label htmlFor="password">{t('password')}</Label>
+          <Input
             id="password"
             name="password"
             type="password"
@@ -74,15 +79,17 @@ function LoginPage() {
             required
           />
           {error ? (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
+            <Alert className="form-error" variant="destructive">
+              <AlertDescription className="form-error-description">
+                {error}
+              </AlertDescription>
+            </Alert>
           ) : null}
-          <button className="primary-button" disabled={pending} type="submit">
+          <Button className="primary-button" disabled={pending} type="submit">
             {pending ? t('signingIn') : t('signIn')}
-          </button>
+          </Button>
         </form>
-      </section>
+      </Card>
     </main>
   )
 }

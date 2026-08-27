@@ -368,6 +368,9 @@ a {
   border-radius: 0.65rem;
   font-size: 0.82rem;
 }
+.form-error-description {
+  color: inherit;
+}
 .primary-button {
   min-height: 50px;
   margin-top: 1rem;
