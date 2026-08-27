@@ -22,6 +22,13 @@
       "when": 1787831376337,
       "tag": "0002_smooth_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787833067018,
+      "tag": "0003_faulty_franklin_richards",
+      "breakpoints": true
     }
   ]
 }

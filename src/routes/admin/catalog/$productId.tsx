@@ -1,13 +1,14 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Flower2, Plus, Save, Trash2, Upload, X } from 'lucide-react'
+import { ArrowLeft, Plus, Save, Trash2, Upload, X } from 'lucide-react'
 import { useState } from 'react'
 
-import { LanguageSwitcher } from '#/components/language-switcher'
+import { AdminHeader } from '#/components/admin-header'
 import { Alert, AlertDescription } from '#/components/ui/alert'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
+import { Textarea } from '#/components/ui/textarea'
 import { useLocale } from '#/lib/i18n'
 import { renderMarkdownToHtml } from '#/lib/markdown'
 import {
@@ -16,6 +17,7 @@ import {
   saveCatalogProductFn,
   uploadProductImageFn,
 } from '#/server/catalog'
+import { getPendingOrderCountFn } from '#/server/admin-order'
 
 type EditableVariation = {
   id?: number
@@ -40,11 +42,18 @@ export const Route = createFileRoute('/admin/catalog/$productId')({
       getRequiredAdminFn(),
     ),
   loader: async ({ params }) => {
-    if (params.productId === 'new') return null
-    const id = Number(params.productId)
-    return Number.isSafeInteger(id) && id > 0
-      ? getAdminProductFn({ data: { id } })
-      : null
+    const [product, pendingCount] = await Promise.all([
+      params.productId === 'new'
+        ? Promise.resolve(null)
+        : (() => {
+            const id = Number(params.productId)
+            return Number.isSafeInteger(id) && id > 0
+              ? getAdminProductFn({ data: { id } })
+              : Promise.resolve(null)
+          })(),
+      getPendingOrderCountFn(),
+    ])
+    return { product, pendingCount }
   },
   component: AdminProductEditor,
 })
@@ -59,7 +68,7 @@ async function fileToBase64(file: File) {
 function AdminProductEditor() {
   const { t } = useLocale()
   const navigate = useNavigate()
-  const product = Route.useLoaderData()
+  const { product, pendingCount } = Route.useLoaderData()
   const isNew = product === null
   const [name, setName] = useState(product?.name ?? '')
   const [description, setDescription] = useState(product?.description ?? '')
@@ -185,18 +194,7 @@ function AdminProductEditor() {
 
   return (
     <div className="admin-shell">
-      <header className="admin-header">
-        <Link to="/admin" className="admin-brand">
-          <Flower2 aria-hidden="true" size={20} />
-          {t('adminBrand')}
-        </Link>
-        <div className="admin-actions">
-          <Link className="admin-section-link" to="/admin/catalog">
-            {t('catalog')}
-          </Link>
-          <LanguageSwitcher />
-        </div>
-      </header>
+      <AdminHeader pendingCount={pendingCount} />
       <main className="admin-main product-editor-main">
         <Link to="/admin/catalog" className="back-link">
           <ArrowLeft aria-hidden="true" size={16} />
@@ -227,7 +225,7 @@ function AdminProductEditor() {
             </div>
             <div className="form-field">
               <Label htmlFor="product-description">{t('description')}</Label>
-              <textarea
+              <Textarea
                 id="product-description"
                 name="description"
                 rows={10}

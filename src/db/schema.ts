@@ -45,6 +45,21 @@ export const productImages = pgTable('product_images', {
     .defaultNow(),
 })
 
+export const customers = pgTable('customers', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  socialChannel: text('social_channel').notNull(),
+  socialContact: text('social_contact').notNull(),
+  phone: text('phone'),
+  defaultAddress: text('default_address'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 export const orders = pgTable('orders', {
   id: serial('id').primaryKey(),
   requestReference: text('request_reference').notNull().unique(),
@@ -70,6 +85,9 @@ export const orders = pgTable('orders', {
   deliveryMethod: text('delivery_method').notNull(),
   orderAddress: text('order_address'),
   requiredDate: date('required_date', { mode: 'string' }).notNull(),
+  customerId: integer('customer_id').references(() => customers.id, {
+    onDelete: 'restrict',
+  }),
   orderValueThb: numeric('order_value_thb', { precision: 12, scale: 2 }),
   internalNote: text('internal_note'),
   createdAt: timestamp('created_at', { withTimezone: true })
@@ -83,4 +101,5 @@ export const orders = pgTable('orders', {
 export type Product = typeof products.$inferSelect
 export type ProductVariation = typeof productVariations.$inferSelect
 export type ProductImage = typeof productImages.$inferSelect
+export type Customer = typeof customers.$inferSelect
 export type Order = typeof orders.$inferSelect

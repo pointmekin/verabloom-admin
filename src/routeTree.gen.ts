@@ -18,6 +18,10 @@ import { Route as CatalogProductIdRouteImport } from './routes/catalog/$productI
 import { Route as CatalogRequestSuccessRouteImport } from './routes/catalog/request-success'
 import { Route as AdminCatalogIndexRouteImport } from './routes/admin/catalog/index'
 import { Route as AdminCatalogProductIdRouteImport } from './routes/admin/catalog/$productId'
+import { Route as AdminCustomersIndexRouteImport } from './routes/admin/customers/index'
+import { Route as AdminCustomersCustomerIdRouteImport } from './routes/admin/customers/$customerId'
+import { Route as AdminOrdersIndexRouteImport } from './routes/admin/orders/index'
+import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin/orders/$orderId'
 import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
 import { Route as ApiCatalogImageRouteImport } from './routes/api/catalog/image'
 import { Route as ApiCatalogProductsRouteImport } from './routes/api/catalog/products'
@@ -72,6 +76,27 @@ const AdminCatalogProductIdRoute = AdminCatalogProductIdRouteImport.update({
   path: '/admin/catalog/$productId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCustomersIndexRoute = AdminCustomersIndexRouteImport.update({
+  id: '/admin/customers/',
+  path: '/admin/customers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCustomersCustomerIdRoute =
+  AdminCustomersCustomerIdRouteImport.update({
+    id: '/admin/customers/$customerId',
+    path: '/admin/customers/$customerId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminOrdersIndexRoute = AdminOrdersIndexRouteImport.update({
+  id: '/admin/orders/',
+  path: '/admin/orders/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminOrdersOrderIdRoute = AdminOrdersOrderIdRouteImport.update({
+  id: '/admin/orders/$orderId',
+  path: '/admin/orders/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
   id: '/api/admin/ping',
   path: '/api/admin/ping',
@@ -123,12 +148,16 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/admin/catalog/$productId': typeof AdminCatalogProductIdRoute
+  '/admin/customers/$customerId': typeof AdminCustomersCustomerIdRoute
+  '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
   '/api/catalog/image': typeof ApiCatalogImageRoute
   '/api/catalog/products': typeof ApiCatalogProductsRouteWithChildren
   '/api/test/reset-catalog': typeof ApiTestResetCatalogRoute
   '/catalog/$productId/request': typeof CatalogProductIdRequestRoute
   '/admin/catalog/': typeof AdminCatalogIndexRoute
+  '/admin/customers/': typeof AdminCustomersIndexRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
   '/api/admin/catalog/images': typeof ApiAdminCatalogImagesRoute
   '/api/admin/catalog/products': typeof ApiAdminCatalogProductsRoute
   '/api/catalog/products/$productId': typeof ApiCatalogProductsProductIdRoute
@@ -142,12 +171,16 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/catalog': typeof CatalogIndexRoute
   '/admin/catalog/$productId': typeof AdminCatalogProductIdRoute
+  '/admin/customers/$customerId': typeof AdminCustomersCustomerIdRoute
+  '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
   '/api/catalog/image': typeof ApiCatalogImageRoute
   '/api/catalog/products': typeof ApiCatalogProductsRouteWithChildren
   '/api/test/reset-catalog': typeof ApiTestResetCatalogRoute
   '/catalog/$productId/request': typeof CatalogProductIdRequestRoute
   '/admin/catalog': typeof AdminCatalogIndexRoute
+  '/admin/customers': typeof AdminCustomersIndexRoute
+  '/admin/orders': typeof AdminOrdersIndexRoute
   '/api/admin/catalog/images': typeof ApiAdminCatalogImagesRoute
   '/api/admin/catalog/products': typeof ApiAdminCatalogProductsRoute
   '/api/catalog/products/$productId': typeof ApiCatalogProductsProductIdRoute
@@ -162,12 +195,16 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/admin/catalog/$productId': typeof AdminCatalogProductIdRoute
+  '/admin/customers/$customerId': typeof AdminCustomersCustomerIdRoute
+  '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
   '/api/catalog/image': typeof ApiCatalogImageRoute
   '/api/catalog/products': typeof ApiCatalogProductsRouteWithChildren
   '/api/test/reset-catalog': typeof ApiTestResetCatalogRoute
   '/catalog/$productId/request': typeof CatalogProductIdRequestRoute
   '/admin/catalog/': typeof AdminCatalogIndexRoute
+  '/admin/customers/': typeof AdminCustomersIndexRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
   '/api/admin/catalog/images': typeof ApiAdminCatalogImagesRoute
   '/api/admin/catalog/products': typeof ApiAdminCatalogProductsRoute
   '/api/catalog/products/$productId': typeof ApiCatalogProductsProductIdRoute
@@ -183,12 +220,16 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/catalog/'
     | '/admin/catalog/$productId'
+    | '/admin/customers/$customerId'
+    | '/admin/orders/$orderId'
     | '/api/admin/ping'
     | '/api/catalog/image'
     | '/api/catalog/products'
     | '/api/test/reset-catalog'
     | '/catalog/$productId/request'
     | '/admin/catalog/'
+    | '/admin/customers/'
+    | '/admin/orders/'
     | '/api/admin/catalog/images'
     | '/api/admin/catalog/products'
     | '/api/catalog/products/$productId'
@@ -202,12 +243,16 @@ export interface FileRouteTypes {
     | '/admin'
     | '/catalog'
     | '/admin/catalog/$productId'
+    | '/admin/customers/$customerId'
+    | '/admin/orders/$orderId'
     | '/api/admin/ping'
     | '/api/catalog/image'
     | '/api/catalog/products'
     | '/api/test/reset-catalog'
     | '/catalog/$productId/request'
     | '/admin/catalog'
+    | '/admin/customers'
+    | '/admin/orders'
     | '/api/admin/catalog/images'
     | '/api/admin/catalog/products'
     | '/api/catalog/products/$productId'
@@ -221,12 +266,16 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/catalog/'
     | '/admin/catalog/$productId'
+    | '/admin/customers/$customerId'
+    | '/admin/orders/$orderId'
     | '/api/admin/ping'
     | '/api/catalog/image'
     | '/api/catalog/products'
     | '/api/test/reset-catalog'
     | '/catalog/$productId/request'
     | '/admin/catalog/'
+    | '/admin/customers/'
+    | '/admin/orders/'
     | '/api/admin/catalog/images'
     | '/api/admin/catalog/products'
     | '/api/catalog/products/$productId'
@@ -241,11 +290,15 @@ export interface RootRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   CatalogIndexRoute: typeof CatalogIndexRoute
   AdminCatalogProductIdRoute: typeof AdminCatalogProductIdRoute
+  AdminCustomersCustomerIdRoute: typeof AdminCustomersCustomerIdRoute
+  AdminOrdersOrderIdRoute: typeof AdminOrdersOrderIdRoute
   ApiAdminPingRoute: typeof ApiAdminPingRoute
   ApiCatalogImageRoute: typeof ApiCatalogImageRoute
   ApiCatalogProductsRoute: typeof ApiCatalogProductsRouteWithChildren
   ApiTestResetCatalogRoute: typeof ApiTestResetCatalogRoute
   AdminCatalogIndexRoute: typeof AdminCatalogIndexRoute
+  AdminCustomersIndexRoute: typeof AdminCustomersIndexRoute
+  AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
   ApiAdminCatalogImagesRoute: typeof ApiAdminCatalogImagesRoute
   ApiAdminCatalogProductsRoute: typeof ApiAdminCatalogProductsRoute
 }
@@ -313,6 +366,34 @@ declare module '@tanstack/react-router' {
       path: '/admin/catalog/$productId'
       fullPath: '/admin/catalog/$productId'
       preLoaderRoute: typeof AdminCatalogProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/customers/': {
+      id: '/admin/customers/'
+      path: '/admin/customers'
+      fullPath: '/admin/customers/'
+      preLoaderRoute: typeof AdminCustomersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/customers/$customerId': {
+      id: '/admin/customers/$customerId'
+      path: '/admin/customers/$customerId'
+      fullPath: '/admin/customers/$customerId'
+      preLoaderRoute: typeof AdminCustomersCustomerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/orders/': {
+      id: '/admin/orders/'
+      path: '/admin/orders'
+      fullPath: '/admin/orders/'
+      preLoaderRoute: typeof AdminOrdersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/orders/$orderId': {
+      id: '/admin/orders/$orderId'
+      path: '/admin/orders/$orderId'
+      fullPath: '/admin/orders/$orderId'
+      preLoaderRoute: typeof AdminOrdersOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/ping': {
@@ -405,11 +486,15 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   CatalogIndexRoute: CatalogIndexRoute,
   AdminCatalogProductIdRoute: AdminCatalogProductIdRoute,
+  AdminCustomersCustomerIdRoute: AdminCustomersCustomerIdRoute,
+  AdminOrdersOrderIdRoute: AdminOrdersOrderIdRoute,
   ApiAdminPingRoute: ApiAdminPingRoute,
   ApiCatalogImageRoute: ApiCatalogImageRoute,
   ApiCatalogProductsRoute: ApiCatalogProductsRouteWithChildren,
   ApiTestResetCatalogRoute: ApiTestResetCatalogRoute,
   AdminCatalogIndexRoute: AdminCatalogIndexRoute,
+  AdminCustomersIndexRoute: AdminCustomersIndexRoute,
+  AdminOrdersIndexRoute: AdminOrdersIndexRoute,
   ApiAdminCatalogImagesRoute: ApiAdminCatalogImagesRoute,
   ApiAdminCatalogProductsRoute: ApiAdminCatalogProductsRoute,
 }

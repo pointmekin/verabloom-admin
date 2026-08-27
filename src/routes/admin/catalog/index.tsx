@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 
-import { LanguageSwitcher } from '#/components/language-switcher'
+import { AdminHeader } from '#/components/admin-header'
 import { Alert, AlertDescription } from '#/components/ui/alert'
 import { Button } from '#/components/ui/button'
 import { useLocale } from '#/lib/i18n'
@@ -18,20 +18,27 @@ import {
   reorderCatalogProductsFn,
   setCatalogVisibilityFn,
 } from '#/server/catalog'
+import { getPendingOrderCountFn } from '#/server/admin-order'
 
 export const Route = createFileRoute('/admin/catalog/')({
   beforeLoad: () =>
     import('#/server/auth').then(({ getRequiredAdminFn }) =>
       getRequiredAdminFn(),
     ),
-  loader: () => listAdminCatalogFn(),
+  loader: async () => {
+    const [products, pendingCount] = await Promise.all([
+      listAdminCatalogFn(),
+      getPendingOrderCountFn(),
+    ])
+    return { products, pendingCount }
+  },
   component: AdminCatalogPage,
 })
 
 function AdminCatalogPage() {
   const { t } = useLocale()
   const router = useRouter()
-  const products = Route.useLoaderData()
+  const { products, pendingCount } = Route.useLoaderData()
   const [message, setMessage] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -65,34 +72,9 @@ function AdminCatalogPage() {
     }
   }
 
-  async function logout() {
-    const { logoutFn } = await import('#/server/auth')
-    await logoutFn()
-    window.location.assign('/admin/login')
-  }
-
   return (
     <div className="admin-shell">
-      <header className="admin-header">
-        <Link to="/admin" className="admin-brand">
-          <Flower2 aria-hidden="true" size={20} />
-          {t('adminBrand')}
-        </Link>
-        <div className="admin-actions">
-          <Link className="admin-section-link" to="/admin/catalog">
-            {t('catalog')}
-          </Link>
-          <LanguageSwitcher />
-          <Button
-            className="logout-button"
-            onClick={logout}
-            type="button"
-            variant="ghost"
-          >
-            {t('logout')}
-          </Button>
-        </div>
-      </header>
+      <AdminHeader pendingCount={pendingCount} />
       <main className="admin-main catalog-admin-main">
         <div className="admin-page-heading">
           <div>
