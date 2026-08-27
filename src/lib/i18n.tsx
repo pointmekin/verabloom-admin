@@ -188,7 +188,7 @@ const translations = {
     expensePayer: 'ผู้จ่ายเงิน',
     payer_chompooh: 'ชมพู',
     payer_meen: 'มีน',
-    payer_kan: 'กัน',
+    payer_kan: 'กาน',
     expenseAmount: 'จำนวนเงินรวม (บาท)',
     expenseDate: 'วันที่จ่าย',
     expenseQuantity: 'จำนวน (ไม่บังคับ)',
