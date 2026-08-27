@@ -16,7 +16,7 @@ function Home() {
           <span>Verabloom</span>
         </Link>
         <nav className="public-nav" aria-label="Primary">
-          <span>{t('publicNav')}</span>
+          <Link to="/catalog">{t('publicNav')}</Link>
           <LanguageSwitcher />
           <Link className="admin-link" to="/admin/login">
             {t('adminSignIn')}
@@ -29,10 +29,10 @@ function Home() {
           <p className="eyebrow">{t('publicKicker')}</p>
           <h1>{t('publicTitle')}</h1>
           <p className="hero-body">{t('publicBody')}</p>
-          <div className="coming-soon">
+          <Link className="coming-soon" to="/catalog">
             <span>{t('publicCta')}</span>
             <ArrowUpRight aria-hidden="true" size={18} />
-          </div>
+          </Link>
           <p className="hero-note">{t('publicNote')}</p>
         </div>
         <div className="botanical-mark" aria-hidden="true">

@@ -44,6 +44,11 @@ function AdminHome() {
       <main className="admin-main">
         <p className="eyebrow">{t('adminProtected')}</p>
         <h1>{t('adminOverview')}</h1>
+        <div className="admin-overview-actions">
+          <Button asChild className="primary-button compact-button">
+            <Link to="/admin/catalog">{t('adminCatalog')}</Link>
+          </Button>
+        </div>
         <Card className="welcome-panel">
           <div className="status-icon">
             <LockKeyhole aria-hidden="true" />

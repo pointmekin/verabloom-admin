@@ -12,7 +12,17 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as CatalogIndexRouteImport } from './routes/catalog/index'
+import { Route as CatalogProductIdRouteImport } from './routes/catalog/$productId'
+import { Route as AdminCatalogIndexRouteImport } from './routes/admin/catalog/index'
+import { Route as AdminCatalogProductIdRouteImport } from './routes/admin/catalog/$productId'
 import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
+import { Route as ApiCatalogImageRouteImport } from './routes/api/catalog/image'
+import { Route as ApiCatalogProductsRouteImport } from './routes/api/catalog/products'
+import { Route as ApiTestResetCatalogRouteImport } from './routes/api/test/reset-catalog'
+import { Route as ApiAdminCatalogImagesRouteImport } from './routes/api/admin/catalog/images'
+import { Route as ApiAdminCatalogProductsRouteImport } from './routes/api/admin/catalog/products'
+import { Route as ApiCatalogProductsProductIdRouteImport } from './routes/api/catalog/products/$productId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,44 +39,177 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CatalogIndexRoute = CatalogIndexRouteImport.update({
+  id: '/catalog/',
+  path: '/catalog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogProductIdRoute = CatalogProductIdRouteImport.update({
+  id: '/catalog/$productId',
+  path: '/catalog/$productId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCatalogIndexRoute = AdminCatalogIndexRouteImport.update({
+  id: '/admin/catalog/',
+  path: '/admin/catalog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCatalogProductIdRoute = AdminCatalogProductIdRouteImport.update({
+  id: '/admin/catalog/$productId',
+  path: '/admin/catalog/$productId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
   id: '/api/admin/ping',
   path: '/api/admin/ping',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCatalogImageRoute = ApiCatalogImageRouteImport.update({
+  id: '/api/catalog/image',
+  path: '/api/catalog/image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCatalogProductsRoute = ApiCatalogProductsRouteImport.update({
+  id: '/api/catalog/products',
+  path: '/api/catalog/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTestResetCatalogRoute = ApiTestResetCatalogRouteImport.update({
+  id: '/api/test/reset-catalog',
+  path: '/api/test/reset-catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminCatalogImagesRoute = ApiAdminCatalogImagesRouteImport.update({
+  id: '/api/admin/catalog/images',
+  path: '/api/admin/catalog/images',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminCatalogProductsRoute = ApiAdminCatalogProductsRouteImport.update({
+  id: '/api/admin/catalog/products',
+  path: '/api/admin/catalog/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCatalogProductsProductIdRoute =
+  ApiCatalogProductsProductIdRouteImport.update({
+    id: '/$productId',
+    path: '/$productId',
+    getParentRoute: () => ApiCatalogProductsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
+  '/catalog/$productId': typeof CatalogProductIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/catalog/': typeof CatalogIndexRoute
+  '/admin/catalog/$productId': typeof AdminCatalogProductIdRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/catalog/image': typeof ApiCatalogImageRoute
+  '/api/catalog/products': typeof ApiCatalogProductsRouteWithChildren
+  '/api/test/reset-catalog': typeof ApiTestResetCatalogRoute
+  '/admin/catalog/': typeof AdminCatalogIndexRoute
+  '/api/admin/catalog/images': typeof ApiAdminCatalogImagesRoute
+  '/api/admin/catalog/products': typeof ApiAdminCatalogProductsRoute
+  '/api/catalog/products/$productId': typeof ApiCatalogProductsProductIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
+  '/catalog/$productId': typeof CatalogProductIdRoute
   '/admin': typeof AdminIndexRoute
+  '/catalog': typeof CatalogIndexRoute
+  '/admin/catalog/$productId': typeof AdminCatalogProductIdRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/catalog/image': typeof ApiCatalogImageRoute
+  '/api/catalog/products': typeof ApiCatalogProductsRouteWithChildren
+  '/api/test/reset-catalog': typeof ApiTestResetCatalogRoute
+  '/admin/catalog': typeof AdminCatalogIndexRoute
+  '/api/admin/catalog/images': typeof ApiAdminCatalogImagesRoute
+  '/api/admin/catalog/products': typeof ApiAdminCatalogProductsRoute
+  '/api/catalog/products/$productId': typeof ApiCatalogProductsProductIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
+  '/catalog/$productId': typeof CatalogProductIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/catalog/': typeof CatalogIndexRoute
+  '/admin/catalog/$productId': typeof AdminCatalogProductIdRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/catalog/image': typeof ApiCatalogImageRoute
+  '/api/catalog/products': typeof ApiCatalogProductsRouteWithChildren
+  '/api/test/reset-catalog': typeof ApiTestResetCatalogRoute
+  '/admin/catalog/': typeof AdminCatalogIndexRoute
+  '/api/admin/catalog/images': typeof ApiAdminCatalogImagesRoute
+  '/api/admin/catalog/products': typeof ApiAdminCatalogProductsRoute
+  '/api/catalog/products/$productId': typeof ApiCatalogProductsProductIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin/login' | '/admin/' | '/api/admin/ping'
+  fullPaths:
+    | '/'
+    | '/admin/login'
+    | '/catalog/$productId'
+    | '/admin/'
+    | '/catalog/'
+    | '/admin/catalog/$productId'
+    | '/api/admin/ping'
+    | '/api/catalog/image'
+    | '/api/catalog/products'
+    | '/api/test/reset-catalog'
+    | '/admin/catalog/'
+    | '/api/admin/catalog/images'
+    | '/api/admin/catalog/products'
+    | '/api/catalog/products/$productId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin/login' | '/admin' | '/api/admin/ping'
-  id: '__root__' | '/' | '/admin/login' | '/admin/' | '/api/admin/ping'
+  to:
+    | '/'
+    | '/admin/login'
+    | '/catalog/$productId'
+    | '/admin'
+    | '/catalog'
+    | '/admin/catalog/$productId'
+    | '/api/admin/ping'
+    | '/api/catalog/image'
+    | '/api/catalog/products'
+    | '/api/test/reset-catalog'
+    | '/admin/catalog'
+    | '/api/admin/catalog/images'
+    | '/api/admin/catalog/products'
+    | '/api/catalog/products/$productId'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin/login'
+    | '/catalog/$productId'
+    | '/admin/'
+    | '/catalog/'
+    | '/admin/catalog/$productId'
+    | '/api/admin/ping'
+    | '/api/catalog/image'
+    | '/api/catalog/products'
+    | '/api/test/reset-catalog'
+    | '/admin/catalog/'
+    | '/api/admin/catalog/images'
+    | '/api/admin/catalog/products'
+    | '/api/catalog/products/$productId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  CatalogProductIdRoute: typeof CatalogProductIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  CatalogIndexRoute: typeof CatalogIndexRoute
+  AdminCatalogProductIdRoute: typeof AdminCatalogProductIdRoute
   ApiAdminPingRoute: typeof ApiAdminPingRoute
+  ApiCatalogImageRoute: typeof ApiCatalogImageRoute
+  ApiCatalogProductsRoute: typeof ApiCatalogProductsRouteWithChildren
+  ApiTestResetCatalogRoute: typeof ApiTestResetCatalogRoute
+  AdminCatalogIndexRoute: typeof AdminCatalogIndexRoute
+  ApiAdminCatalogImagesRoute: typeof ApiAdminCatalogImagesRoute
+  ApiAdminCatalogProductsRoute: typeof ApiAdminCatalogProductsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -92,6 +235,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/catalog/': {
+      id: '/catalog/'
+      path: '/catalog'
+      fullPath: '/catalog/'
+      preLoaderRoute: typeof CatalogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catalog/$productId': {
+      id: '/catalog/$productId'
+      path: '/catalog/$productId'
+      fullPath: '/catalog/$productId'
+      preLoaderRoute: typeof CatalogProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/catalog/': {
+      id: '/admin/catalog/'
+      path: '/admin/catalog'
+      fullPath: '/admin/catalog/'
+      preLoaderRoute: typeof AdminCatalogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/catalog/$productId': {
+      id: '/admin/catalog/$productId'
+      path: '/admin/catalog/$productId'
+      fullPath: '/admin/catalog/$productId'
+      preLoaderRoute: typeof AdminCatalogProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/ping': {
       id: '/api/admin/ping'
       path: '/api/admin/ping'
@@ -99,14 +270,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/catalog/image': {
+      id: '/api/catalog/image'
+      path: '/api/catalog/image'
+      fullPath: '/api/catalog/image'
+      preLoaderRoute: typeof ApiCatalogImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/catalog/products': {
+      id: '/api/catalog/products'
+      path: '/api/catalog/products'
+      fullPath: '/api/catalog/products'
+      preLoaderRoute: typeof ApiCatalogProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/test/reset-catalog': {
+      id: '/api/test/reset-catalog'
+      path: '/api/test/reset-catalog'
+      fullPath: '/api/test/reset-catalog'
+      preLoaderRoute: typeof ApiTestResetCatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/catalog/images': {
+      id: '/api/admin/catalog/images'
+      path: '/api/admin/catalog/images'
+      fullPath: '/api/admin/catalog/images'
+      preLoaderRoute: typeof ApiAdminCatalogImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/catalog/products': {
+      id: '/api/admin/catalog/products'
+      path: '/api/admin/catalog/products'
+      fullPath: '/api/admin/catalog/products'
+      preLoaderRoute: typeof ApiAdminCatalogProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/catalog/products/$productId': {
+      id: '/api/catalog/products/$productId'
+      path: '/$productId'
+      fullPath: '/api/catalog/products/$productId'
+      preLoaderRoute: typeof ApiCatalogProductsProductIdRouteImport
+      parentRoute: typeof ApiCatalogProductsRoute
+    }
   }
 }
+
+interface ApiCatalogProductsRouteChildren {
+  ApiCatalogProductsProductIdRoute: typeof ApiCatalogProductsProductIdRoute
+}
+
+const ApiCatalogProductsRouteChildren: ApiCatalogProductsRouteChildren = {
+  ApiCatalogProductsProductIdRoute: ApiCatalogProductsProductIdRoute,
+}
+
+const ApiCatalogProductsRouteWithChildren =
+  ApiCatalogProductsRoute._addFileChildren(ApiCatalogProductsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminLoginRoute: AdminLoginRoute,
+  CatalogProductIdRoute: CatalogProductIdRoute,
   AdminIndexRoute: AdminIndexRoute,
+  CatalogIndexRoute: CatalogIndexRoute,
+  AdminCatalogProductIdRoute: AdminCatalogProductIdRoute,
   ApiAdminPingRoute: ApiAdminPingRoute,
+  ApiCatalogImageRoute: ApiCatalogImageRoute,
+  ApiCatalogProductsRoute: ApiCatalogProductsRouteWithChildren,
+  ApiTestResetCatalogRoute: ApiTestResetCatalogRoute,
+  AdminCatalogIndexRoute: AdminCatalogIndexRoute,
+  ApiAdminCatalogImagesRoute: ApiAdminCatalogImagesRoute,
+  ApiAdminCatalogProductsRoute: ApiAdminCatalogProductsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

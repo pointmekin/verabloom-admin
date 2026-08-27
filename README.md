@@ -10,7 +10,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and a random `SESSION_SECRET` of at least 32 characters before testing admin access. `DATABASE_URL` is not required to render the foundation routes, but database commands require it.
+Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and a random `SESSION_SECRET` of at least 32 characters before testing admin access. Configure the `DATABASE_URL` and AWS/S3 variables from `.env.example` before using catalog management or product image uploads. The catalog intentionally fails fast when Neon or S3 is not configured; browser tests opt into isolated in-memory fakes explicitly.
 
 ## Database workflow
 
