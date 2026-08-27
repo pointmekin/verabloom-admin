@@ -178,4 +178,21 @@ describe('payment records', () => {
     await deleteOrder(order.id)
     expect(await listPaymentsForOrder(order.id)).toEqual([])
   })
+
+  it('stays in memory when only the catalog store is memory, matching orders', async () => {
+    delete process.env.VERABLOOM_PAYMENT_STORE
+    try {
+      const order = await fixtureConfirmedOrder()
+      const payment = await createPayment(order.id, {
+        amountThb: '250',
+        paymentDate: '2026-08-03',
+        method: 'cash',
+        note: '',
+      })
+      expect(payment.orderId).toBe(order.id)
+      expect((await listPaymentsForOrder(order.id)).length).toBe(1)
+    } finally {
+      process.env.VERABLOOM_PAYMENT_STORE = 'memory'
+    }
+  })
 })

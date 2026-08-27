@@ -46,7 +46,8 @@ export function clearPaymentMemoryForTests() {
 function useDatabase() {
   if (
     process.env.VERABLOOM_PAYMENT_STORE === 'memory' ||
-    process.env.VERABLOOM_ORDER_STORE === 'memory'
+    process.env.VERABLOOM_ORDER_STORE === 'memory' ||
+    process.env.VERABLOOM_CATALOG_STORE === 'memory'
   ) {
     return false
   }
