@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { clearCatalogMemoryForTests, saveCatalogProduct } from './catalog-store.server'
+import {
+  clearCatalogMemoryForTests,
+  saveCatalogProduct,
+} from './catalog-store.server'
 import {
   clearOrderMemoryForTests,
   createDirectOrder,
@@ -11,6 +14,7 @@ import {
   clearPaymentMemoryForTests,
   createPayment,
   deletePayment,
+  listAllPayments,
   listPaymentsForOrder,
   updatePayment,
 } from './payment-store.server'
@@ -145,9 +149,7 @@ describe('payment records', () => {
     await expect(updatePayment(created.id, updated)).rejects.toThrow(
       'Payment not found',
     )
-    await expect(deletePayment(created.id)).rejects.toThrow(
-      'Payment not found',
-    )
+    await expect(deletePayment(created.id)).rejects.toThrow('Payment not found')
   })
 
   it('keeps retained payments recorded when an order is cancelled', async () => {
@@ -177,6 +179,37 @@ describe('payment records', () => {
     })
     await deleteOrder(order.id)
     expect(await listPaymentsForOrder(order.id)).toEqual([])
+  })
+
+  it('lists every payment across orders newest payment date first', async () => {
+    const order = await fixtureConfirmedOrder()
+    const other = await createDirectOrder({
+      ...baseInput,
+      productId: order.productId,
+      variationId: order.variationId,
+      customerName: 'Nok',
+    })
+    await createPayment(order.id, {
+      amountThb: '500',
+      paymentDate: '2026-08-01',
+      method: 'bank_transfer',
+      note: '',
+    })
+    await createPayment(other.id, {
+      amountThb: '250.50',
+      paymentDate: '2026-08-10',
+      method: 'cash',
+      note: '',
+    })
+    await createPayment(order.id, {
+      amountThb: '100',
+      paymentDate: '2026-08-10',
+      method: 'other',
+      note: '',
+    })
+    const all = await listAllPayments()
+    expect(all.map((item) => item.amountThb)).toEqual(['100', '250.50', '500'])
+    expect(all.every((item) => typeof item.orderId === 'number')).toBe(true)
   })
 
   it('stays in memory when only the catalog store is memory, matching orders', async () => {

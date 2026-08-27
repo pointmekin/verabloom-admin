@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminFinanceRouteImport } from './routes/admin/finance'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as ApiOrderRequestsRouteImport } from './routes/api/order-requests'
 import { Route as CatalogIndexRouteImport } from './routes/catalog/index'
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminFinanceRoute = AdminFinanceRouteImport.update({
+  id: '/admin/finance',
+  path: '/admin/finance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -147,6 +153,7 @@ const ApiCatalogProductsProductIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/order-requests': typeof ApiOrderRequestsRoute
   '/catalog/$productId': typeof CatalogProductIdRouteWithChildren
@@ -171,6 +178,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/order-requests': typeof ApiOrderRequestsRoute
   '/catalog/$productId': typeof CatalogProductIdRouteWithChildren
@@ -196,6 +204,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/order-requests': typeof ApiOrderRequestsRoute
   '/catalog/$productId': typeof CatalogProductIdRouteWithChildren
@@ -222,6 +231,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin/finance'
     | '/admin/login'
     | '/api/order-requests'
     | '/catalog/$productId'
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin/finance'
     | '/admin/login'
     | '/api/order-requests'
     | '/catalog/$productId'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin/finance'
     | '/admin/login'
     | '/api/order-requests'
     | '/catalog/$productId'
@@ -295,6 +307,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminFinanceRoute: typeof AdminFinanceRoute
   AdminLoginRoute: typeof AdminLoginRoute
   ApiOrderRequestsRoute: typeof ApiOrderRequestsRoute
   CatalogProductIdRoute: typeof CatalogProductIdRouteWithChildren
@@ -330,6 +343,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/finance': {
+      id: '/admin/finance'
+      path: '/admin/finance'
+      fullPath: '/admin/finance'
+      preLoaderRoute: typeof AdminFinanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -499,6 +519,7 @@ const ApiCatalogProductsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminFinanceRoute: AdminFinanceRoute,
   AdminLoginRoute: AdminLoginRoute,
   ApiOrderRequestsRoute: ApiOrderRequestsRoute,
   CatalogProductIdRoute: CatalogProductIdRouteWithChildren,

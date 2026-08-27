@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm'
+import { asc, desc, eq } from 'drizzle-orm'
 
 import { getDatabase } from '#/db'
 import { payments } from '#/db/schema'
@@ -140,10 +140,7 @@ export async function listPaymentsForOrder(orderId: number) {
   if (!useDatabase()) {
     return [...memory.payments.values()]
       .filter((item) => item.orderId === orderId)
-      .sort(
-        (a, b) =>
-          a.paymentDate.localeCompare(b.paymentDate) || a.id - b.id,
-      )
+      .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate) || a.id - b.id)
       .map((item) => ({ ...item }))
   }
   const rows = await getDatabase()
@@ -151,6 +148,19 @@ export async function listPaymentsForOrder(orderId: number) {
     .from(payments)
     .where(eq(payments.orderId, orderId))
     .orderBy(asc(payments.paymentDate), asc(payments.id))
+  return rows.map(mapDatabasePayment)
+}
+
+export async function listAllPayments() {
+  if (!useDatabase()) {
+    return [...memory.payments.values()]
+      .sort((a, b) => b.paymentDate.localeCompare(a.paymentDate) || b.id - a.id)
+      .map((item) => ({ ...item }))
+  }
+  const rows = await getDatabase()
+    .select()
+    .from(payments)
+    .orderBy(desc(payments.paymentDate), desc(payments.id))
   return rows.map(mapDatabasePayment)
 }
 

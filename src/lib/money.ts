@@ -1,10 +1,7 @@
 const bahtPattern = /^\d+(?:\.\d{1,2})?$/
 
 export type OrderStatusForTotals =
-  | 'pending_review'
-  | 'confirmed'
-  | 'completed'
-  | 'cancelled'
+  'pending_review' | 'confirmed' | 'completed' | 'cancelled'
 
 export type OrderLike = {
   status: OrderStatusForTotals
@@ -28,7 +25,7 @@ export function satangToDecimalString(satang: number) {
   return `${negative ? '-' : ''}${baht}.${remainder}`
 }
 
-function sumPaymentsSatang(payments: readonly PaymentLike[]) {
+export function sumPaymentsSatang(payments: readonly PaymentLike[]) {
   let total = 0
   for (const item of payments) {
     const satang = parseBahtToSatang(item.amountThb)
@@ -38,16 +35,21 @@ function sumPaymentsSatang(payments: readonly PaymentLike[]) {
   return total
 }
 
+export function orderOutstandingSatang(
+  order: Pick<OrderLike, 'status' | 'orderValueThb'>,
+  paymentsSatang: number,
+) {
+  const value = parseBahtToSatang(order.orderValueThb)
+  if (order.status === 'cancelled' || value === null) return 0
+  return Math.max(0, value - paymentsSatang)
+}
+
 export function orderTotals(
   order: Pick<OrderLike, 'status' | 'orderValueThb'>,
   payments: readonly PaymentLike[],
 ): { receivedThb: string; outstandingThb: string } {
   const received = sumPaymentsSatang(payments)
-  const value = parseBahtToSatang(order.orderValueThb)
-  const outstanding =
-    order.status === 'cancelled' || value === null
-      ? 0
-      : Math.max(0, value - received)
+  const outstanding = orderOutstandingSatang(order, received)
   return {
     receivedThb: satangToDecimalString(received),
     outstandingThb: satangToDecimalString(outstanding),

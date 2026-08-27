@@ -1370,6 +1370,13 @@ a {
     background: transparent;
     border: 0;
   }
+  .finance-main .orders-table-wrap > [data-slot='table-container'] {
+    overflow: visible;
+  }
+  .finance-main .orders-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
   .orders-table,
   .orders-table thead,
   .orders-table tbody,
@@ -1478,5 +1485,69 @@ a {
 @media (max-width: 560px) {
   .payments-summary {
     grid-template-columns: 1fr;
+  }
+}
+.finance-main {
+  width: min(1080px, calc(100% - 2rem));
+}
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-top: 2.5rem;
+}
+.summary-card {
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  display: grid;
+}
+.summary-card strong {
+  font-size: 1.05rem;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+.dashboard-chart-card {
+  margin-top: 1rem;
+}
+.dashboard-chart {
+  aspect-ratio: auto;
+  height: 300px;
+  width: 100%;
+}
+.dashboard-chart-empty {
+  margin: 0;
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  color: var(--muted-ink);
+  border: 1px dashed var(--line);
+  border-radius: 0.8rem;
+}
+.period-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: end;
+  margin-top: 0.9rem;
+}
+.period-form .compact-button {
+  margin-top: 0;
+}
+.period-range {
+  margin: 0.9rem 0 0;
+  color: var(--leaf-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.finance-main > .editor-card + .editor-card {
+  margin-top: 1rem;
+}
+@media (max-width: 640px) {
+  .period-form {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 }

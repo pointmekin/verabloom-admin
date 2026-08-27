@@ -34,6 +34,9 @@ export function AdminHeader({ pendingCount }: { pendingCount: number }) {
         <Link className="admin-section-link" to="/admin/expenses">
           {t('expenses')}
         </Link>
+        <Link className="admin-section-link" to="/admin/finance">
+          {t('finance')}
+        </Link>
         <Link className="admin-section-link" to="/admin/catalog">
           {t('catalog')}
         </Link>
