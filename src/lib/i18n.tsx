@@ -186,7 +186,7 @@ const translations = {
     expenseDialogDescription: 'บันทึกสิ่งที่ร้านจ่าย ผู้จ่ายเงิน และวันที่จ่าย',
     expenseDescription: 'รายละเอียด',
     expensePayer: 'ผู้จ่ายเงิน',
-    payer_chompooh: 'ชมพู่',
+    payer_chompooh: 'ชมพู',
     payer_meen: 'มีน',
     payer_kan: 'กัน',
     expenseAmount: 'จำนวนเงินรวม (บาท)',
