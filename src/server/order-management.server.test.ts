@@ -17,6 +17,7 @@ import {
   deleteOrder,
   getOrderById,
   listOrderRequests,
+  listOrderRequestsPage,
   updateOrder,
 } from './order-store.server'
 import { directOrderSchema, orderUpdateSchema } from './admin-order'
@@ -218,6 +219,13 @@ describe('customer and order management', () => {
     expect(
       (await listOrderRequests({ search: '0812345678' })).map((o) => o.id),
     ).toEqual([delivery.id, second.id, first.id])
+    const page = await listOrderRequestsPage({ search: '0812345678' })
+    expect(page.orders.map((o) => o.id)).toEqual([
+      delivery.id,
+      second.id,
+      first.id,
+    ])
+    expect(page.pendingCount).toBe(2)
     expect(
       (await listOrderRequests({ status: 'confirmed' })).map((o) => o.id),
     ).toEqual([second.id])

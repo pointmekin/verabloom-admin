@@ -462,6 +462,17 @@ export async function listOrderRequests(options?: {
   return rows.map(mapDatabaseOrder)
 }
 
+export async function listOrderRequestsPage(options?: {
+  search?: string
+  status?: OrderStatus
+}) {
+  const [matchingOrders, pendingOrders] = await Promise.all([
+    listOrderRequests(options),
+    listOrderRequests({ status: 'pending_review' }),
+  ])
+  return { orders: matchingOrders, pendingCount: pendingOrders.length }
+}
+
 export async function updateOrder(id: number, input: OrderEditableInput) {
   if (input.customerId != null && !(await getCustomerById(input.customerId))) {
     throw new Error('Customer not found')
@@ -485,10 +496,9 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
         snapshot?.product.name ?? existing.productNameSnapshot,
       variationNameSnapshot:
         snapshot?.variation.name ?? existing.variationNameSnapshot,
-      startingPriceThbSnapshot:
-        snapshot
-          ? snapshot.variation.startingPriceThb
-          : existing.startingPriceThbSnapshot,
+      startingPriceThbSnapshot: snapshot
+        ? snapshot.variation.startingPriceThb
+        : existing.startingPriceThbSnapshot,
       quantity: input.quantity ?? existing.quantity,
       customerId: input.customerId ?? null,
       customerName: input.customerName,

@@ -18,7 +18,7 @@ import {
 } from '#/components/ui/table'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
-import { getPendingOrderCountFn, listAdminOrdersFn } from '#/server/admin-order'
+import { listAdminOrdersPageFn } from '#/server/admin-order'
 import type { AdminOrderStatus } from '#/server/admin-order'
 
 const orderSearchSchema = z.object({
@@ -35,13 +35,7 @@ export const Route = createFileRoute('/admin/orders/')({
     ),
   validateSearch: orderSearchSchema,
   loaderDeps: ({ search }) => search,
-  loader: async ({ deps }) => {
-    const [orders, pendingCount] = await Promise.all([
-      listAdminOrdersFn({ data: deps }),
-      getPendingOrderCountFn(),
-    ])
-    return { orders, pendingCount }
-  },
+  loader: ({ deps }) => listAdminOrdersPageFn({ data: deps }),
   component: AdminOrdersPage,
 })
 

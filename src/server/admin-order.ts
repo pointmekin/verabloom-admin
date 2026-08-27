@@ -108,6 +108,10 @@ export const directOrderSchema = withOrderRules(
 )
 
 const orderIdSchema = z.object({ id: z.coerce.number().int().positive() })
+const orderListSchema = z.object({
+  search: z.string().optional(),
+  status: statusSchema.optional(),
+})
 
 async function assertAdmin() {
   const { hasAdminSession } = await import('./auth-session.server')
@@ -115,16 +119,19 @@ async function assertAdmin() {
 }
 
 export const listAdminOrdersFn = createServerFn({ method: 'GET' })
-  .validator(
-    z.object({
-      search: z.string().optional(),
-      status: statusSchema.optional(),
-    }),
-  )
+  .validator(orderListSchema)
   .handler(async ({ data }) => {
     await assertAdmin()
     const { listOrderRequests } = await import('./order-store.server')
     return listOrderRequests(data)
+  })
+
+export const listAdminOrdersPageFn = createServerFn({ method: 'GET' })
+  .validator(orderListSchema)
+  .handler(async ({ data }) => {
+    await assertAdmin()
+    const { listOrderRequestsPage } = await import('./order-store.server')
+    return listOrderRequestsPage(data)
   })
 
 export const getAdminOrderFn = createServerFn({ method: 'GET' })
