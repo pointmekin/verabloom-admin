@@ -1,0 +1,2 @@
+-- The foundation has no domain tables. This migration establishes the
+-- repeatable Drizzle migration history for later feature-owned schemas.
