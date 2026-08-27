@@ -6,7 +6,7 @@
 
 **Blocked by:** 02 — Manage and browse the product catalog.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] The product detail page opens a request form with the selected product already identified.
 - [ ] A request contains one product variation and a positive whole-number quantity that defaults to one.

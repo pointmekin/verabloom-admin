@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, notInArray } from 'drizzle-orm'
 
 import { getDatabase } from '#/db'
-import { productImages, productVariations, products } from '#/db/schema'
+import { orders, productImages, productVariations, products } from '#/db/schema'
 import { getObjectStorageUrl } from './storage.server'
 
 export type CatalogVariation = {
@@ -327,22 +327,38 @@ export async function saveCatalogProduct(input: ProductInput) {
       .select({ id: productVariations.id })
       .from(productVariations)
       .where(eq(productVariations.productId, savedId))
+    const referencedVariationRows =
+      currentVariations.length > 0
+        ? await tx
+            .select({ variationId: orders.variationId })
+            .from(orders)
+            .where(
+              inArray(
+                orders.variationId,
+                currentVariations.map((variation) => variation.id),
+              ),
+            )
+        : []
+    const referencedVariationIds = new Set(
+      referencedVariationRows.map((row) => row.variationId),
+    )
     const variationIds = input.variations.flatMap((variation) =>
       variation.id ? [variation.id] : [],
     )
-    if (variationIds.length > 0) {
+    const variationIdsToDelete = currentVariations
+      .map((variation) => variation.id)
+      .filter(
+        (id) => !variationIds.includes(id) && !referencedVariationIds.has(id),
+      )
+    if (variationIdsToDelete.length > 0) {
       await tx
         .delete(productVariations)
         .where(
           and(
             eq(productVariations.productId, savedId),
-            notInArray(productVariations.id, variationIds),
+            inArray(productVariations.id, variationIdsToDelete),
           ),
         )
-    } else if (currentVariations.length > 0) {
-      await tx
-        .delete(productVariations)
-        .where(eq(productVariations.productId, savedId))
     }
     for (const [index, variation] of input.variations.entries()) {
       if (variation.id) {

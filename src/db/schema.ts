@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   integer,
   numeric,
   pgTable,
@@ -44,6 +45,42 @@ export const productImages = pgTable('product_images', {
     .defaultNow(),
 })
 
+export const orders = pgTable('orders', {
+  id: serial('id').primaryKey(),
+  requestReference: text('request_reference').notNull().unique(),
+  status: text('status').notNull().default('pending_review'),
+  productId: integer('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'restrict' }),
+  variationId: integer('variation_id')
+    .notNull()
+    .references(() => productVariations.id, { onDelete: 'restrict' }),
+  productNameSnapshot: text('product_name_snapshot').notNull(),
+  variationNameSnapshot: text('variation_name_snapshot').notNull(),
+  startingPriceThbSnapshot: numeric('starting_price_thb_snapshot', {
+    precision: 12,
+    scale: 2,
+  }),
+  quantity: integer('quantity').notNull(),
+  customerName: text('customer_name').notNull(),
+  socialChannel: text('social_channel').notNull(),
+  socialContact: text('social_contact').notNull(),
+  phone: text('phone'),
+  requestDetails: text('request_details').notNull().default(''),
+  deliveryMethod: text('delivery_method').notNull(),
+  orderAddress: text('order_address'),
+  requiredDate: date('required_date', { mode: 'string' }).notNull(),
+  orderValueThb: numeric('order_value_thb', { precision: 12, scale: 2 }),
+  internalNote: text('internal_note'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 export type Product = typeof products.$inferSelect
 export type ProductVariation = typeof productVariations.$inferSelect
 export type ProductImage = typeof productImages.$inferSelect
+export type Order = typeof orders.$inferSelect

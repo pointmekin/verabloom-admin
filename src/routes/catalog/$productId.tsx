@@ -2,6 +2,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft, Flower2, Image as ImageIcon } from 'lucide-react'
 
 import { LanguageSwitcher } from '#/components/language-switcher'
+import { Button } from '#/components/ui/button'
 import { useLocale } from '#/lib/i18n'
 import { getPublicProductFn } from '#/server/catalog'
 import { renderMarkdownToHtml } from '#/lib/markdown'
@@ -79,6 +80,13 @@ function ProductPage() {
                 __html: renderMarkdownToHtml(product.description),
               }}
             />
+            {product.variations.length > 0 ? (
+              <Button asChild className="primary-button request-cta">
+                <a href={`/catalog/${product.id}/request`}>
+                  {t('requestProduct')}
+                </a>
+              </Button>
+            ) : null}
             <section className="product-variations">
               <h2>{t('variations')}</h2>
               {product.variations.length > 0 ? (
@@ -91,6 +99,13 @@ function ProductPage() {
                           ? `${t('startingPrice')}: ฿${formatStartingPrice(variation.startingPriceThb)}`
                           : t('noStartingPrice')}
                       </strong>
+                      <Button asChild size="sm" variant="outline">
+                        <a
+                          href={`/catalog/${product.id}/request?variationId=${variation.id}`}
+                        >
+                          {t('requestBouquet')}
+                        </a>
+                      </Button>
                     </li>
                   ))}
                 </ul>
