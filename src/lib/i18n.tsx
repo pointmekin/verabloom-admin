@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
+import { verabloomDevtoolsEvents } from '#/lib/devtools-events'
+
 export const locales = ['th', 'en'] as const
 export type Locale = (typeof locales)[number]
 
@@ -31,14 +33,10 @@ const translations = {
     catalog: 'แคตตาล็อก',
     catalogTitle: 'ช่อดอกไม้ของเรา',
     catalogIntro: 'เลือกชมดีไซน์ที่จัดไว้สำหรับทุกโอกาส',
-    variationFilter: 'กรองตามรูปแบบ',
-    allVariations: 'ทุกรูปแบบ',
-    clearFilter: 'ล้างตัวกรอง',
     noProducts: 'ยังไม่มีช่อดอกไม้ที่เปิดให้ชม',
     viewProduct: 'ดูรายละเอียด',
     backToCatalog: 'กลับไปแคตตาล็อก',
     productDetails: 'รายละเอียดช่อดอกไม้',
-    variations: 'รูปแบบที่มีให้เลือก',
     startingPrice: 'ราคาเริ่มต้น',
     indicativePriceNote:
       'ราคาเริ่มต้นเป็นราคาโดยประมาณ ราคาสุดท้ายยืนยันเมื่อสั่งซื้อ',
@@ -49,7 +47,6 @@ const translations = {
     requestTitle: 'ส่งคำขอช่อดอกไม้',
     requestIntro: 'กรอกรายละเอียดเพื่อให้เราติดต่อกลับและยืนยันคำขอของคุณ',
     selectedProduct: 'ช่อดอกไม้ที่เลือก',
-    selectedVariation: 'รูปแบบที่เลือก',
     quantity: 'จำนวน',
     customerName: 'ชื่อผู้ติดต่อ',
     socialChannel: 'ช่องทางติดต่อ',
@@ -92,10 +89,7 @@ const translations = {
     markdownGuide:
       'ใช้ **ตัวหนา**, *ตัวเอียง*, - รายการ และ [ลิงก์](https://example.com)',
     preview: 'ตัวอย่าง',
-    variationsEditor: 'รูปแบบและราคาเริ่มต้น',
-    variationName: 'ชื่อรูปแบบ',
     priceThb: 'ราคาเริ่มต้น (บาท)',
-    addVariation: 'เพิ่มรูปแบบ',
     remove: 'ลบ',
     imagesEditor: 'ภาพสินค้า',
     uploadImages: 'เพิ่มภาพ',
@@ -122,8 +116,20 @@ const translations = {
     allStatuses: 'ทุกสถานะ',
     status_pending_review: 'รอตรวจสอบ',
     status_confirmed: 'ยืนยันแล้ว',
+    status_work_in_progress: 'กำลังจัดทำ',
     status_completed: 'เสร็จสิ้น',
     status_cancelled: 'ยกเลิก',
+    taskOwner: 'ผู้รับผิดชอบ',
+    unassigned: 'ยังไม่มีผู้รับผิดชอบ',
+    taskOwnerRequired: 'กรุณาเลือกผู้รับผิดชอบคำสั่งซื้อนี้',
+    recipientName: 'ชื่อผู้รับ',
+    recipientPhone: 'เบอร์โทรผู้รับ',
+    recipientRequired: 'การส่งไปรษณีย์ต้องมีชื่อและเบอร์โทรผู้รับ',
+    messengerDetails: 'ข้อมูลผู้รับสำหรับแมสเซนเจอร์',
+    messengerDetailsHint: 'กรอกชื่อ ที่อยู่ และเบอร์โทรในช่องเดียว',
+    byTeamMember: 'แยกตามสมาชิกทีม',
+    paidColumn: 'จ่ายไป',
+    earnedColumn: 'รายได้',
     noOrders: 'ยังไม่มีคำขอหรือคำสั่งซื้อ',
     noCustomers: 'ยังไม่มีข้อมูลลูกค้า',
     customer: 'ข้อมูลลูกค้า',
@@ -256,14 +262,10 @@ const translations = {
     catalog: 'Catalog',
     catalogTitle: 'Our bouquets',
     catalogIntro: 'Browse designs arranged for every occasion.',
-    variationFilter: 'Filter by variation',
-    allVariations: 'All variations',
-    clearFilter: 'Clear filter',
     noProducts: 'No visible bouquets yet',
     viewProduct: 'View details',
     backToCatalog: 'Back to catalog',
     productDetails: 'Bouquet details',
-    variations: 'Available variations',
     startingPrice: 'Starting price',
     indicativePriceNote:
       'Starting prices are indicative. We confirm the final price when you request an order.',
@@ -275,7 +277,6 @@ const translations = {
     requestIntro:
       'Share the details and we will follow up to confirm your request.',
     selectedProduct: 'Selected bouquet',
-    selectedVariation: 'Selected variation',
     quantity: 'Quantity',
     customerName: 'Your name',
     socialChannel: 'Contact channel',
@@ -320,10 +321,7 @@ const translations = {
     markdownGuide:
       'Use **bold**, *italic*, - list items, and [links](https://example.com)',
     preview: 'Preview',
-    variationsEditor: 'Variations and starting prices',
-    variationName: 'Variation name',
     priceThb: 'Starting price (THB)',
-    addVariation: 'Add variation',
     remove: 'Remove',
     imagesEditor: 'Product images',
     uploadImages: 'Add images',
@@ -350,8 +348,20 @@ const translations = {
     allStatuses: 'All statuses',
     status_pending_review: 'Pending review',
     status_confirmed: 'Confirmed',
+    status_work_in_progress: 'Work in progress',
     status_completed: 'Completed',
     status_cancelled: 'Cancelled',
+    taskOwner: 'Task owner',
+    unassigned: 'Unassigned',
+    taskOwnerRequired: 'Choose the task owner for this order',
+    recipientName: 'Recipient name',
+    recipientPhone: 'Recipient phone',
+    recipientRequired: 'Postal delivery requires a recipient name and phone',
+    messengerDetails: 'Messenger recipient details',
+    messengerDetailsHint: 'Write the name, address, and phone in one field',
+    byTeamMember: 'By team member',
+    paidColumn: 'Paid',
+    earnedColumn: 'Earned',
     noOrders: 'No requests or orders found',
     noCustomers: 'No customers found',
     customer: 'Customer details',
@@ -486,6 +496,7 @@ export function LocaleProvider({
   useEffect(() => {
     document.documentElement.lang = locale
     document.documentElement.dataset.hydrated = 'true'
+    verabloomDevtoolsEvents.emit('locale-change', { locale, at: Date.now() })
   }, [locale])
 
   const value = useMemo<LocaleContextValue>(

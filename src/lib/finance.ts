@@ -5,9 +5,17 @@ import {
   sumPaymentsSatang,
 } from './money'
 import type { OrderStatusForTotals, PaymentLike } from './money'
+import { TEAM_MEMBERS } from './team-members'
+import type { TeamMember } from './team-members'
 
 export type PaymentAmountLike = PaymentLike
 export type ExpenseAmountLike = { totalAmountThb: string }
+
+export type TeamMemberTotals = {
+  member: TeamMember | 'unassigned'
+  earnedThb: string
+  paidThb: string
+}
 export type OrderWithPaymentsLike = {
   status: OrderStatusForTotals
   orderValueThb: string | null
@@ -74,6 +82,43 @@ export function financeTotals(input: FinanceTotalsInput): FinanceTotals {
     netCashThb: netCashThb(receivedThb, expensesThb),
     outstandingThb: outstandingTotalThb(input.orders),
   }
+}
+
+/**
+ * Money each team member earned and paid. Income follows the order's task
+ * owner; expenses follow the payer. Orders with no owner fall to `unassigned`.
+ */
+export function teamMemberTotals(
+  payments: readonly (PaymentAmountLike & {
+    taskOwner: TeamMember | null
+  })[],
+  expenses: readonly (ExpenseAmountLike & { payer: TeamMember })[],
+): TeamMemberTotals[] {
+  const keys = [...TEAM_MEMBERS, 'unassigned'] as const
+  const earned = new Map<string, number>(keys.map((key) => [key, 0]))
+  const paid = new Map<string, number>(keys.map((key) => [key, 0]))
+  for (const payment of payments) {
+    const key = payment.taskOwner ?? 'unassigned'
+    earned.set(key, (earned.get(key) ?? 0) + requireSatang(payment.amountThb))
+  }
+  for (const expense of expenses) {
+    paid.set(
+      expense.payer,
+      (paid.get(expense.payer) ?? 0) + requireSatang(expense.totalAmountThb),
+    )
+  }
+  return keys
+    .map((member) => ({
+      member,
+      earnedThb: satangToDecimalString(earned.get(member) ?? 0),
+      paidThb: satangToDecimalString(paid.get(member) ?? 0),
+    }))
+    .filter(
+      (row) =>
+        row.member !== 'unassigned' ||
+        row.earnedThb !== '0.00' ||
+        row.paidThb !== '0.00',
+    )
 }
 
 export function isWithinInclusivePeriod(

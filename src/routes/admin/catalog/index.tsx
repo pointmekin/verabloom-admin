@@ -134,9 +134,9 @@ function AdminCatalogPage() {
                       <h2>{product.name}</h2>
                     </Link>
                     <p>
-                      {product.variations
-                        .map((item) => item.name)
-                        .join(' · ') || t('emptyDescription')}
+                      {product.startingPriceThb
+                        ? `${t('startingPrice')}: ฿${product.startingPriceThb}`
+                        : t('noStartingPrice')}
                     </p>
                     <span
                       className={`visibility-badge ${product.visible ? 'is-visible' : ''}`}

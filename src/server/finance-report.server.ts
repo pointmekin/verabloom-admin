@@ -6,9 +6,11 @@ import {
   netCashThb,
   receivedIncomeThb,
   recordedExpensesThb,
+  teamMemberTotals,
   bangkokTodayIso,
 } from '#/lib/finance'
-import type { MonthlyFinance } from '#/lib/finance'
+import type { MonthlyFinance, TeamMemberTotals } from '#/lib/finance'
+import type { TeamMember } from '#/lib/team-members'
 import type { ExpenseRecord } from './expense-store.server'
 import type { PaymentRecord } from './payment-store.server'
 import type { OrderRequest } from './order-store.server'
@@ -16,6 +18,7 @@ import type { OrderRequest } from './order-store.server'
 export type FinancePaymentRow = PaymentRecord & {
   customerName: string
   requestReference: string
+  taskOwner: TeamMember | null
 }
 
 export type DashboardFinancials = {
@@ -34,6 +37,7 @@ export type FinanceReport = {
   netCashThb: string
   payments: FinancePaymentRow[]
   expenses: ExpenseRecord[]
+  teamMembers: TeamMemberTotals[]
 }
 
 export function buildDashboardFinancials(input: {
@@ -96,12 +100,16 @@ export function buildFinanceReport(input: {
     netCashThb: netCashThb(receivedThb, expensesThb),
     payments,
     expenses,
+    teamMembers: teamMemberTotals(payments, expenses),
   }
 }
 
 export function joinPaymentsWithOrders(
   payments: PaymentRecord[],
-  orders: Pick<OrderRequest, 'id' | 'customerName' | 'requestReference'>[],
+  orders: Pick<
+    OrderRequest,
+    'id' | 'customerName' | 'requestReference' | 'taskOwner'
+  >[],
 ): FinancePaymentRow[] {
   const ordersById = new Map(orders.map((order) => [order.id, order]))
   const rows: FinancePaymentRow[] = []
@@ -112,6 +120,7 @@ export function joinPaymentsWithOrders(
       ...payment,
       customerName: order.customerName,
       requestReference: order.requestReference,
+      taskOwner: order.taskOwner,
     })
   }
   return rows

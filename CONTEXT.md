@@ -8,13 +8,9 @@ Verabloom manages the shop's bouquet catalog, customer orders, payments, and mat
 A bouquet design displayed in the public catalog. A product may have one or more variations.
 _Avoid_: Catalog item, bouquet style
 
-**Variation**:
-A purchasable option belonging to a product, such as a size or construction style. Each product has only the variations that apply to it.
-_Avoid_: Product type, universal size
-
 **Starting price**:
-The indicative price shown for a variation before the shop confirms an order's final price.
-_Avoid_: Fixed price, final price
+The indicative price shown for a product before the shop confirms an order's final price.
+_Avoid_: Fixed price, final price, variation price
 
 **Order request**:
 Details submitted by a customer for the shop to review. It does not commit the shop to the requested design, price, or delivery date.
@@ -29,15 +25,19 @@ An order request that the shop has accepted with an agreed final price and fulfi
 _Avoid_: Order request, sale
 
 **Order status**:
-The order's current stage: pending review, confirmed, completed, or cancelled.
+The order's current stage: pending review, confirmed, work in progress, completed, or cancelled.
 _Avoid_: Production stage, shipping status
+
+**Task owner**:
+The team member who makes the flowers for an order. Every order an admin saves has one. A customer's own request starts with no owner.
+_Avoid_: Assignee, staff role, admin account
 
 **Request details**:
 The customer's plain-text description of colors, flowers, wrapping, card text, or other preferences for an order request.
 _Avoid_: Product description, structured customization
 
 **Selected product details**:
-The product name, variation name, and starting price copied into an order request when submitted. Later catalog changes do not alter these details.
+The product name copied into an order request when submitted. Later catalog changes do not alter these details. The customer describes the size and style in the request details.
 _Avoid_: Live catalog details
 
 **Internal note**:
@@ -49,8 +49,12 @@ The date by which the customer needs an order ready or dispatched, shown to cust
 _Avoid_: Delivery guarantee, delivery time slot
 
 **Delivery method**:
-How the customer will receive an order: postal delivery, messenger, or collection.
+How the customer will receive an order: postal delivery, messenger, or collection. Each method has its own color and icon.
 _Avoid_: Shipping provider, fulfillment status
+
+**Order recipient**:
+The person who receives a delivered order. A postal order records the recipient name, phone, and address as separate required fields. A messenger order records all recipient information in one free-text block.
+_Avoid_: Customer, default address
 
 **Customer**:
 The person who requests and purchases a bouquet.
@@ -93,5 +97,5 @@ Money a team member paid for shop materials or another shop cost.
 _Avoid_: Payment, reimbursement
 
 **Team member**:
-One of Chompooh, Meen, or Kan, identified as the person who paid an expense.
-_Avoid_: Admin, user
+One of Chompooh, Meen, or Kan. A team member pays an expense and owns an order's flower work. Each one has an accent color used across the interface.
+_Avoid_: Admin, user, staff role

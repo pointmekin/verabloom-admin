@@ -1,13 +1,18 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
+import { TEAM_MEMBERS } from '#/lib/team-members'
 import type { OrderStatus } from './order-store.server'
 
 const socialChannelSchema = z.enum(['line', 'instagram', 'tiktok'])
 const deliveryMethodSchema = z.enum(['postal', 'messenger', 'collection'])
+const taskOwnerSchema = z.enum(TEAM_MEMBERS, {
+  message: 'Choose a task owner',
+})
 const statusSchema = z.enum([
   'pending_review',
   'confirmed',
+  'work_in_progress',
   'completed',
   'cancelled',
 ])
@@ -36,6 +41,7 @@ const nullableIdSchema = z.preprocess(
 )
 
 const editableOrderShape = z.object({
+  taskOwner: taskOwnerSchema,
   customerId: nullableIdSchema.default(null),
   customerName: z.string().trim().min(1).max(200),
   socialChannel: socialChannelSchema,
@@ -43,6 +49,8 @@ const editableOrderShape = z.object({
   phone: z.string().trim().max(60).default(''),
   requestDetails: z.string().trim().max(5000).default(''),
   deliveryMethod: deliveryMethodSchema,
+  recipientName: z.string().trim().max(200).default(''),
+  recipientPhone: z.string().trim().max(60).default(''),
   orderAddress: z.string().trim().max(1000).default(''),
   requiredDate: dateSchema,
   status: statusSchema,
@@ -50,10 +58,14 @@ const editableOrderShape = z.object({
   internalNote: z.string().trim().max(5000).default(''),
 })
 
+const statusesRequiringValue = ['confirmed', 'work_in_progress', 'completed']
+
 function withOrderRules<T extends z.ZodTypeAny>(schema: T) {
   return schema.superRefine((value, context) => {
     const order = value as {
       deliveryMethod: string
+      recipientName: string
+      recipientPhone: string
       orderAddress: string
       status: string
       orderValueThb: string
@@ -69,7 +81,23 @@ function withOrderRules<T extends z.ZodTypeAny>(schema: T) {
         message: 'Address is required for delivery',
       })
     }
-    if (order.status === 'confirmed' && !order.orderValueThb) {
+    if (order.deliveryMethod === 'postal') {
+      if (!order.recipientName) {
+        context.addIssue({
+          code: 'custom',
+          path: ['recipientName'],
+          message: 'Postal orders require recipient details',
+        })
+      }
+      if (!order.recipientPhone) {
+        context.addIssue({
+          code: 'custom',
+          path: ['recipientPhone'],
+          message: 'Postal orders require recipient details',
+        })
+      }
+    }
+    if (statusesRequiringValue.includes(order.status) && !order.orderValueThb) {
       context.addIssue({
         code: 'custom',
         path: ['orderValueThb'],
@@ -91,7 +119,6 @@ function withOrderRules<T extends z.ZodTypeAny>(schema: T) {
 
 const editableOrderWithProductShape = editableOrderShape.extend({
   productId: z.coerce.number().int().positive(),
-  variationId: z.coerce.number().int().positive(),
   quantity: z.coerce.number().int().positive(),
 })
 
@@ -100,7 +127,10 @@ export const orderUpdateSchema = withOrderRules(editableOrderWithProductShape)
 export const directOrderSchema = withOrderRules(
   editableOrderWithProductShape,
 ).refine(
-  (value) => value.status === 'pending_review' || value.status === 'confirmed',
+  (value) =>
+    value.status === 'pending_review' ||
+    value.status === 'confirmed' ||
+    value.status === 'work_in_progress',
   {
     path: ['status'],
     message: 'Direct orders must start pending or confirmed',

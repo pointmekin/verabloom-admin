@@ -29,14 +29,16 @@ process.env.VERABLOOM_STORAGE = 'memory'
 
 const baseInput = {
   productId: 1,
-  variationId: 1,
   quantity: 1,
+  taskOwner: 'chompooh' as const,
   customerName: 'Mali',
   socialChannel: 'line' as const,
   socialContact: '@mali',
   phone: '',
   requestDetails: 'Pink flowers',
   deliveryMethod: 'collection' as const,
+  recipientName: '',
+  recipientPhone: '',
   orderAddress: '',
   requiredDate: '2026-09-10',
   honeypot: '',
@@ -46,12 +48,12 @@ async function fixture() {
   const product = await saveCatalogProduct({
     name: 'Spring bouquet',
     description: '',
+    startingPriceThb: '890',
     visible: true,
-    variations: [{ name: 'Medium', startingPriceThb: '890' }],
     images: [],
   })
-  if (!product || !product.variations[0]) throw new Error('fixture failed')
-  return { product, variation: product.variations[0] }
+  if (!product) throw new Error('fixture failed')
+  return { product }
 }
 
 describe('customer and order management', () => {
@@ -96,8 +98,62 @@ describe('customer and order management', () => {
     ).toBe(false)
   })
 
+  it('requires a task owner, an order value in progress, and postal recipients', () => {
+    const { taskOwner: _owner, ...withoutOwner } = baseInput
+    expect(
+      directOrderSchema.safeParse({
+        ...withoutOwner,
+        status: 'pending_review',
+        orderValueThb: '',
+        customerId: null,
+      }).success,
+    ).toBe(false)
+    expect(
+      directOrderSchema.safeParse({
+        ...baseInput,
+        status: 'work_in_progress',
+        orderValueThb: '',
+        customerId: null,
+      }).success,
+    ).toBe(false)
+    expect(
+      directOrderSchema.safeParse({
+        ...baseInput,
+        status: 'work_in_progress',
+        orderValueThb: '1200',
+        customerId: null,
+      }).success,
+    ).toBe(true)
+    const postal = {
+      ...baseInput,
+      deliveryMethod: 'postal' as const,
+      orderAddress: '12 Rose Road',
+      status: 'pending_review' as const,
+      orderValueThb: '',
+      customerId: null,
+    }
+    expect(directOrderSchema.safeParse(postal).success).toBe(false)
+    expect(
+      directOrderSchema.safeParse({
+        ...postal,
+        recipientName: 'Nok',
+        recipientPhone: '0812345678',
+      }).success,
+    ).toBe(true)
+    expect(
+      directOrderSchema.safeParse({
+        ...baseInput,
+        deliveryMethod: 'messenger',
+        orderAddress: 'Nok, 12 Rose Road, 0812345678',
+        status: 'pending_review',
+        orderValueThb: '',
+        customerId: null,
+      }).success,
+    ).toBe(true)
+  })
+
   it('creates customers, links requests, and keeps the order address independent', async () => {
-    const { product, variation } = await fixture()
+    const { product } = await fixture()
     const customer = await createCustomer({
       name: 'Mali',
       socialChannel: 'line',
@@ -108,52 +164,39 @@ describe('customer and order management', () => {
     const request = await createOrderRequest({
       ...baseInput,
       productId: product.id,
-      variationId: variation.id,
       deliveryMethod: 'postal',
+      recipientName: 'Mali',
+      recipientPhone: '0812345678',
       orderAddress: customer.defaultAddress ?? '',
     })
+    expect(request.taskOwner).toBeNull()
     const updated = await updateOrder(request.id, {
       ...request,
+      taskOwner: 'meen',
       customerId: customer.id,
       orderAddress: 'Order address',
       status: 'confirmed',
       orderValueThb: '1200',
     })
     expect(updated.customerId).toBe(customer.id)
+    expect(updated.taskOwner).toBe('meen')
     expect(updated.orderAddress).toBe('Order address')
     const replacement = await saveCatalogProduct({
       name: 'Summer bouquet',
       description: '',
+      startingPriceThb: '1500',
       visible: false,
-      variations: [{ name: 'Large', startingPriceThb: '1500' }],
       images: [],
     })
-    if (!replacement || !replacement.variations[0])
-      throw new Error('fixture failed')
+    if (!replacement) throw new Error('fixture failed')
     const changed = await updateOrder(request.id, {
       ...updated,
+      taskOwner: 'meen',
       productId: replacement.id,
-      variationId: replacement.variations[0].id,
       quantity: 2,
     })
     expect(changed.productNameSnapshot).toBe('Summer bouquet')
-    expect(changed.variationNameSnapshot).toBe('Large')
     expect(changed.quantity).toBe(2)
-    const noPriceProduct = await saveCatalogProduct({
-      name: 'No-price bouquet',
-      description: '',
-      visible: false,
-      variations: [{ name: 'Custom', startingPriceThb: null }],
-      images: [],
-    })
-    if (!noPriceProduct || !noPriceProduct.variations[0])
-      throw new Error('fixture failed')
-    const noPriceChanged = await updateOrder(changed.id, {
-      ...changed,
-      productId: noPriceProduct.id,
-      variationId: noPriceProduct.variations[0].id,
-    })
-    expect(noPriceChanged.startingPriceThbSnapshot).toBeNull()
     expect((await listCustomers())[0]?.name).toBe('Mali')
 
     const changedCustomer = await createCustomer({
@@ -169,7 +212,7 @@ describe('customer and order management', () => {
   })
 
   it('searches and filters newest orders and protects customer history from deletion', async () => {
-    const { product, variation } = await fixture()
+    const { product } = await fixture()
     const customer = await createCustomer({
       name: 'Nok',
       socialChannel: 'instagram',
@@ -180,7 +223,6 @@ describe('customer and order management', () => {
     const first = await createDirectOrder({
       ...baseInput,
       productId: product.id,
-      variationId: variation.id,
       customerId: customer.id,
       customerName: customer.name,
       socialChannel: customer.socialChannel,
@@ -192,7 +234,6 @@ describe('customer and order management', () => {
     const second = await createDirectOrder({
       ...baseInput,
       productId: product.id,
-      variationId: variation.id,
       customerId: customer.id,
       customerName: customer.name,
       socialChannel: customer.socialChannel,
@@ -204,7 +245,6 @@ describe('customer and order management', () => {
     const delivery = await createDirectOrder({
       ...baseInput,
       productId: product.id,
-      variationId: variation.id,
       customerId: customer.id,
       customerName: customer.name,
       socialChannel: customer.socialChannel,

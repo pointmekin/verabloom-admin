@@ -80,36 +80,17 @@ function ProductPage() {
                 __html: renderMarkdownToHtml(product.description),
               }}
             />
-            {product.variations.length > 0 ? (
-              <Button asChild className="primary-button request-cta">
-                <a href={`/catalog/${product.id}/request`}>
-                  {t('requestProduct')}
-                </a>
-              </Button>
-            ) : null}
+            <Button asChild className="primary-button request-cta">
+              <a href={`/catalog/${product.id}/request`}>
+                {t('requestProduct')}
+              </a>
+            </Button>
             <section className="product-variations">
-              <h2>{t('variations')}</h2>
-              {product.variations.length > 0 ? (
-                <ul>
-                  {product.variations.map((variation) => (
-                    <li key={variation.id}>
-                      <span>{variation.name}</span>
-                      <strong>
-                        {variation.startingPriceThb
-                          ? `${t('startingPrice')}: ฿${formatStartingPrice(variation.startingPriceThb)}`
-                          : t('noStartingPrice')}
-                      </strong>
-                      <Button asChild size="sm" variant="outline">
-                        <a
-                          href={`/catalog/${product.id}/request?variationId=${variation.id}`}
-                        >
-                          {t('requestBouquet')}
-                        </a>
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+              <strong>
+                {product.startingPriceThb
+                  ? `${t('startingPrice')}: ฿${formatStartingPrice(product.startingPriceThb)}`
+                  : t('noStartingPrice')}
+              </strong>
               <p className="price-note">{t('indicativePriceNote')}</p>
             </section>
           </article>

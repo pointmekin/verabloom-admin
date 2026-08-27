@@ -17,7 +17,6 @@ process.env.VERABLOOM_STORAGE = 'memory'
 
 const baseInput = {
   productId: 1,
-  variationId: 1,
   quantity: 1,
   customerName: 'Mali',
   socialChannel: 'line' as const,
@@ -25,6 +24,8 @@ const baseInput = {
   phone: '',
   requestDetails: 'Pink flowers',
   deliveryMethod: 'collection' as const,
+  recipientName: '',
+  recipientPhone: '',
   orderAddress: '',
   requiredDate: '2026-09-10',
   honeypot: '',
@@ -81,52 +82,65 @@ describe('order request validation and store', () => {
     ).toBe(false)
   })
 
-  it('snapshots selected catalog details and creates a pending reference', async () => {
+  it('requires recipient name and phone for postal delivery only', () => {
+    const postal = {
+      ...baseInput,
+      deliveryMethod: 'postal' as const,
+      orderAddress: '12 Rose Road',
+    }
+    expect(orderRequestSchema.safeParse(postal).success).toBe(false)
+    expect(
+      orderRequestSchema.safeParse({
+        ...postal,
+        recipientName: 'Nok',
+        recipientPhone: '0812345678',
+      }).success,
+    ).toBe(true)
+    expect(
+      orderRequestSchema.safeParse({
+        ...baseInput,
+        deliveryMethod: 'messenger',
+        orderAddress: 'Nok, 12 Rose Road, 0812345678',
+      }).success,
+    ).toBe(true)
+  })
+
+  it('snapshots the product name and creates a pending reference', async () => {
     const product = await saveCatalogProduct({
       name: 'Spring bouquet',
       description: '',
+      startingPriceThb: '890',
       visible: true,
-      variations: [{ name: 'Medium', startingPriceThb: '890' }],
       images: [],
     })
-    const variation = product?.variations[0]
-    if (!product || !variation) throw new Error('fixture was not saved')
+    if (!product) throw new Error('fixture was not saved')
 
     const request = await createOrderRequest({
       ...baseInput,
       productId: product.id,
-      variationId: variation.id,
     })
 
     expect(request.status).toBe('pending_review')
     expect(request.requestReference).toBe('VB-000001')
     expect(request.productNameSnapshot).toBe('Spring bouquet')
-    expect(request.variationNameSnapshot).toBe('Medium')
-    expect(request.startingPriceThbSnapshot).toBe('890')
+    expect(request.taskOwner).toBeNull()
 
     await saveCatalogProduct({
       id: product.id,
       name: 'Renamed bouquet',
       description: '',
+      startingPriceThb: '1200',
       visible: true,
-      variations: [
-        { id: variation.id, name: 'Large', startingPriceThb: '1200' },
-      ],
       images: [],
     })
 
     expect(request.productNameSnapshot).toBe('Spring bouquet')
-    expect(request.variationNameSnapshot).toBe('Medium')
-    expect(request.startingPriceThbSnapshot).toBe('890')
     const persisted = await getOrderRequestByReference(request.requestReference)
     expect(persisted?.productNameSnapshot).toBe('Spring bouquet')
-    expect(persisted?.variationNameSnapshot).toBe('Medium')
-    expect(persisted?.startingPriceThbSnapshot).toBe('890')
 
     const secondRequest = await createOrderRequest({
       ...baseInput,
       productId: product.id,
-      variationId: variation.id,
       customerName: 'Nok',
     })
     expect(secondRequest.requestReference).toBe('VB-000002')

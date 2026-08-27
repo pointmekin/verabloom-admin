@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { z } from 'zod'
 
 import { AdminHeader } from '#/components/admin-header'
+import { DeliveryBadge } from '#/components/delivery-badge'
+import { OrderOwnerBadge } from '#/components/order-owner-badge'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
@@ -24,7 +26,13 @@ import type { AdminOrderStatus } from '#/server/admin-order'
 const orderSearchSchema = z.object({
   search: z.string().optional().default(''),
   status: z
-    .enum(['pending_review', 'confirmed', 'completed', 'cancelled'])
+    .enum([
+      'pending_review',
+      'confirmed',
+      'work_in_progress',
+      'completed',
+      'cancelled',
+    ])
     .optional(),
 })
 
@@ -111,6 +119,9 @@ function AdminOrdersPage() {
                 {t('status_pending_review')}
               </option>
               <option value="confirmed">{t('status_confirmed')}</option>
+              <option value="work_in_progress">
+                {t('status_work_in_progress')}
+              </option>
               <option value="completed">{t('status_completed')}</option>
               <option value="cancelled">{t('status_cancelled')}</option>
             </Select>
@@ -128,8 +139,10 @@ function AdminOrdersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('requestReference')}</TableHead>
+                  <TableHead>{t('taskOwner')}</TableHead>
                   <TableHead>{t('customerName')}</TableHead>
                   <TableHead>{t('selectedProduct')}</TableHead>
+                  <TableHead>{t('deliveryMethod')}</TableHead>
                   <TableHead>{t('requiredDate')}</TableHead>
                   <TableHead>{t('orderValue')}</TableHead>
                   <TableHead>{t('filterStatus')}</TableHead>
@@ -147,13 +160,18 @@ function AdminOrdersPage() {
                         {order.requestReference}
                       </Link>
                     </TableCell>
+                    <TableCell data-label={t('taskOwner')}>
+                      <OrderOwnerBadge owner={order.taskOwner} />
+                    </TableCell>
                     <TableCell data-label={t('customerName')}>
                       <strong>{order.customerName}</strong>
                       <small>{order.socialContact}</small>
                     </TableCell>
                     <TableCell data-label={t('selectedProduct')}>
-                      {order.productNameSnapshot} ·{' '}
-                      {order.variationNameSnapshot}
+                      {order.productNameSnapshot}
+                    </TableCell>
+                    <TableCell data-label={t('deliveryMethod')}>
+                      <DeliveryBadge method={order.deliveryMethod} />
                     </TableCell>
                     <TableCell data-label={t('requiredDate')}>
                       {order.requiredDate}

@@ -5,6 +5,7 @@ import {
   createRootRoute,
 } from '@tanstack/react-router'
 
+import { AppDevtools } from '#/components/devtools'
 import { LocaleProvider } from '#/lib/i18n'
 import { getLocaleFn } from '#/server/locale'
 import appCss from '../styles.css?url'
@@ -53,6 +54,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         {children}
 
+        <AppDevtools />
         <Scripts />
       </body>
     </html>

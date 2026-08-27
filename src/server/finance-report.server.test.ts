@@ -191,6 +191,7 @@ describe('buildFinanceReport', () => {
       ...paymentRecord(overrides),
       customerName: 'Mali',
       requestReference: 'VB-000001',
+      taskOwner: null,
       ...overrides,
     }
   }
@@ -210,6 +211,11 @@ describe('buildFinanceReport', () => {
       netCashThb: '0.00',
       payments: [],
       expenses: [],
+      teamMembers: [
+        { member: 'chompooh', earnedThb: '0.00', paidThb: '0.00' },
+        { member: 'meen', earnedThb: '0.00', paidThb: '0.00' },
+        { member: 'kan', earnedThb: '0.00', paidThb: '0.00' },
+      ],
     })
   })
 

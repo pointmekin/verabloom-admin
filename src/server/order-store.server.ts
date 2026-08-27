@@ -3,24 +3,28 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, ilike, or } from 'drizzle-orm'
 
 import { getDatabase } from '#/db'
-import { orders, productVariations, products } from '#/db/schema'
+import { orders, products } from '#/db/schema'
+import { isTeamMember } from '#/lib/team-members'
+import type { TeamMember } from '#/lib/team-members'
 import { getCatalogProduct } from './catalog-store.server'
 import { getCustomerById } from './customer-store.server'
 import type { OrderRequestInput } from './order'
 
 export type OrderStatus =
-  'pending_review' | 'confirmed' | 'completed' | 'cancelled'
+  | 'pending_review'
+  | 'confirmed'
+  | 'work_in_progress'
+  | 'completed'
+  | 'cancelled'
 
 export type OrderRequest = {
   id: number
   requestReference: string
   status: OrderStatus
   productId: number
-  variationId: number
   productNameSnapshot: string
-  variationNameSnapshot: string
-  startingPriceThbSnapshot: string | null
   quantity: number
+  taskOwner: TeamMember | null
   customerId: number | null
   customerName: string
   socialChannel: OrderRequestInput['socialChannel']
@@ -28,6 +32,8 @@ export type OrderRequest = {
   phone: string | null
   requestDetails: string
   deliveryMethod: OrderRequestInput['deliveryMethod']
+  recipientName: string | null
+  recipientPhone: string | null
   orderAddress: string | null
   requiredDate: string
   orderValueThb: string | null
@@ -38,8 +44,8 @@ export type OrderRequest = {
 
 export type OrderEditableInput = {
   productId?: number
-  variationId?: number
   quantity?: number
+  taskOwner: TeamMember
   customerId?: number | null
   customerName: string
   socialChannel: OrderRequestInput['socialChannel']
@@ -47,6 +53,8 @@ export type OrderEditableInput = {
   phone?: string | null
   requestDetails: string
   deliveryMethod: OrderRequestInput['deliveryMethod']
+  recipientName?: string | null
+  recipientPhone?: string | null
   orderAddress?: string | null
   requiredDate: string
   status: OrderStatus
@@ -56,7 +64,6 @@ export type OrderEditableInput = {
 
 export type DirectOrderInput = OrderEditableInput & {
   productId: number
-  variationId: number
   quantity: number
 }
 
@@ -113,11 +120,9 @@ function mapDatabaseOrder(row: typeof orders.$inferSelect): OrderRequest {
     requestReference: row.requestReference,
     status: row.status as OrderStatus,
     productId: row.productId,
-    variationId: row.variationId,
     productNameSnapshot: row.productNameSnapshot,
-    variationNameSnapshot: row.variationNameSnapshot,
-    startingPriceThbSnapshot: row.startingPriceThbSnapshot,
     quantity: row.quantity,
+    taskOwner: isTeamMember(row.taskOwner) ? row.taskOwner : null,
     customerId: row.customerId,
     customerName: row.customerName,
     socialChannel: row.socialChannel as OrderRequestInput['socialChannel'],
@@ -125,6 +130,8 @@ function mapDatabaseOrder(row: typeof orders.$inferSelect): OrderRequest {
     phone: row.phone,
     requestDetails: row.requestDetails,
     deliveryMethod: row.deliveryMethod as OrderRequestInput['deliveryMethod'],
+    recipientName: row.recipientName,
+    recipientPhone: row.recipientPhone,
     orderAddress: row.orderAddress,
     requiredDate: row.requiredDate,
     orderValueThb: row.orderValueThb,
@@ -138,12 +145,21 @@ function normalizedValue(value?: string | null) {
   return value?.trim() || null
 }
 
+const statusesRequiringValue: OrderStatus[] = [
+  'confirmed',
+  'work_in_progress',
+  'completed',
+]
+
 function assertEditableOrder(input: OrderEditableInput) {
   if (
     input.quantity !== undefined &&
     (!Number.isSafeInteger(input.quantity) || input.quantity < 1)
   ) {
     throw new Error('Quantity must be a positive whole number')
+  }
+  if (!isTeamMember(input.taskOwner)) {
+    throw new Error('Choose a task owner')
   }
   if (
     (input.deliveryMethod === 'postal' ||
@@ -153,7 +169,13 @@ function assertEditableOrder(input: OrderEditableInput) {
     throw new Error('Address is required for delivery')
   }
   if (
-    (input.status === 'confirmed' || input.status === 'completed') &&
+    input.deliveryMethod === 'postal' &&
+    (!input.recipientName?.trim() || !input.recipientPhone?.trim())
+  ) {
+    throw new Error('Postal orders require recipient details')
+  }
+  if (
+    statusesRequiringValue.includes(input.status) &&
     !input.orderValueThb?.trim()
   ) {
     throw new Error('Confirmed orders require an order value')
@@ -186,40 +208,34 @@ function nextMemoryId() {
   return id
 }
 
-async function catalogSnapshot(
-  productId: number,
-  variationId: number,
-  visibleOnly: boolean,
-) {
+async function catalogSnapshot(productId: number, visibleOnly: boolean) {
   const product = await getCatalogProduct({ id: productId, visibleOnly })
   if (!product) throw new Error('Product not found')
-  const variation = product.variations.find((item) => item.id === variationId)
-  if (!variation) throw new Error('Variation not found')
-  return { product, variation }
+  return product
+}
+
+/** A public request has no task owner, so the owner stays nullable here. */
+type MemoryOrderInput = Omit<OrderEditableInput, 'taskOwner'> & {
+  taskOwner: TeamMember | null
 }
 
 function memoryOrderFromProduct(
   id: number,
   product: Awaited<ReturnType<typeof getCatalogProduct>>,
-  variationId: number,
-  input: OrderEditableInput,
+  input: MemoryOrderInput,
   quantity: number,
   status: OrderStatus,
 ): OrderRequest {
   if (!product) throw new Error('Product not found')
-  const variation = product.variations.find((item) => item.id === variationId)
-  if (!variation) throw new Error('Variation not found')
   const now = new Date()
   return {
     id,
     requestReference: requestReference(id),
     status,
     productId: product.id,
-    variationId: variation.id,
     productNameSnapshot: product.name,
-    variationNameSnapshot: variation.name,
-    startingPriceThbSnapshot: variation.startingPriceThb,
     quantity,
+    taskOwner: input.taskOwner,
     customerId: input.customerId ?? null,
     customerName: input.customerName,
     socialChannel: input.socialChannel,
@@ -227,6 +243,8 @@ function memoryOrderFromProduct(
     phone: normalizedValue(input.phone),
     requestDetails: input.requestDetails,
     deliveryMethod: input.deliveryMethod,
+    recipientName: normalizedValue(input.recipientName),
+    recipientPhone: normalizedValue(input.recipientPhone),
     orderAddress: normalizedValue(input.orderAddress),
     requiredDate: input.requiredDate,
     orderValueThb: normalizedValue(input.orderValueThb),
@@ -241,7 +259,8 @@ export async function createOrderRequest(
 ): Promise<OrderRequest> {
   if (input.honeypot || input.website)
     throw new Error('Bot submission rejected')
-  const editable: OrderEditableInput = {
+  const editable: MemoryOrderInput = {
+    taskOwner: null,
     customerId: null,
     customerName: input.customerName,
     socialChannel: input.socialChannel,
@@ -249,21 +268,18 @@ export async function createOrderRequest(
     phone: input.phone,
     requestDetails: input.requestDetails,
     deliveryMethod: input.deliveryMethod,
+    recipientName: input.recipientName,
+    recipientPhone: input.recipientPhone,
     orderAddress: input.orderAddress,
     requiredDate: input.requiredDate,
     status: 'pending_review',
   }
 
   if (!useDatabase()) {
-    const { product } = await catalogSnapshot(
-      input.productId,
-      input.variationId,
-      true,
-    )
+    const product = await catalogSnapshot(input.productId, true)
     const order = memoryOrderFromProduct(
       nextMemoryId(),
       product,
-      input.variationId,
       editable,
       input.quantity,
       'pending_review',
@@ -280,28 +296,15 @@ export async function createOrderRequest(
       .where(and(eq(products.id, input.productId), eq(products.visible, true)))
     if (productRows.length === 0) throw new Error('Product not found')
     const product = productRows[0]
-    const variationRows = await tx
-      .select()
-      .from(productVariations)
-      .where(
-        and(
-          eq(productVariations.id, input.variationId),
-          eq(productVariations.productId, product.id),
-        ),
-      )
-    if (variationRows.length === 0) throw new Error('Variation not found')
-    const variation = variationRows[0]
     const [created] = await tx
       .insert(orders)
       .values({
         requestReference: `pending-${randomUUID()}`,
         status: 'pending_review',
         productId: product.id,
-        variationId: variation.id,
         productNameSnapshot: product.name,
-        variationNameSnapshot: variation.name,
-        startingPriceThbSnapshot: variation.startingPriceThb,
         quantity: input.quantity,
+        taskOwner: null,
         customerId: null,
         customerName: input.customerName,
         socialChannel: input.socialChannel,
@@ -309,6 +312,8 @@ export async function createOrderRequest(
         phone: normalizedValue(input.phone),
         requestDetails: input.requestDetails,
         deliveryMethod: input.deliveryMethod,
+        recipientName: normalizedValue(input.recipientName),
+        recipientPhone: normalizedValue(input.recipientPhone),
         orderAddress: normalizedValue(input.orderAddress),
         requiredDate: input.requiredDate,
       })
@@ -326,15 +331,10 @@ export async function createDirectOrder(input: DirectOrderInput) {
   const resolvedInput = await resolveDirectOrderInput(input)
   assertEditableOrder(resolvedInput)
   if (!useDatabase()) {
-    const { product } = await catalogSnapshot(
-      resolvedInput.productId,
-      resolvedInput.variationId,
-      false,
-    )
+    const product = await catalogSnapshot(resolvedInput.productId, false)
     const order = memoryOrderFromProduct(
       nextMemoryId(),
       product,
-      resolvedInput.variationId,
       resolvedInput,
       resolvedInput.quantity,
       resolvedInput.status,
@@ -349,28 +349,15 @@ export async function createDirectOrder(input: DirectOrderInput) {
     .where(eq(products.id, resolvedInput.productId))
   if (!productRows[0]) throw new Error('Product not found')
   const product = productRows[0]
-  const variationRows = await db
-    .select()
-    .from(productVariations)
-    .where(
-      and(
-        eq(productVariations.id, resolvedInput.variationId),
-        eq(productVariations.productId, resolvedInput.productId),
-      ),
-    )
-  if (!variationRows[0]) throw new Error('Variation not found')
-  const variation = variationRows[0]
   const [created] = await db
     .insert(orders)
     .values({
       requestReference: `pending-${randomUUID()}`,
       status: resolvedInput.status,
       productId: product.id,
-      variationId: variation.id,
       productNameSnapshot: product.name,
-      variationNameSnapshot: variation.name,
-      startingPriceThbSnapshot: variation.startingPriceThb,
       quantity: resolvedInput.quantity,
+      taskOwner: resolvedInput.taskOwner,
       customerId: resolvedInput.customerId ?? null,
       customerName: resolvedInput.customerName,
       socialChannel: resolvedInput.socialChannel,
@@ -378,6 +365,8 @@ export async function createDirectOrder(input: DirectOrderInput) {
       phone: normalizedValue(resolvedInput.phone),
       requestDetails: resolvedInput.requestDetails,
       deliveryMethod: resolvedInput.deliveryMethod,
+      recipientName: normalizedValue(resolvedInput.recipientName),
+      recipientPhone: normalizedValue(resolvedInput.recipientPhone),
       orderAddress: normalizedValue(resolvedInput.orderAddress),
       requiredDate: resolvedInput.requiredDate,
       orderValueThb: normalizedValue(resolvedInput.orderValueThb),
@@ -482,24 +471,16 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
     const existing = memory.orders.get(id)
     if (!existing) throw new Error('Order not found')
     const productId = input.productId ?? existing.productId
-    const variationId = input.variationId ?? existing.variationId
-    const productChanged =
-      productId !== existing.productId || variationId !== existing.variationId
-    const snapshot = productChanged
-      ? await catalogSnapshot(productId, variationId, false)
-      : null
+    const snapshot =
+      productId !== existing.productId
+        ? await catalogSnapshot(productId, false)
+        : null
     const updated: OrderRequest = {
       ...existing,
       productId,
-      variationId,
-      productNameSnapshot:
-        snapshot?.product.name ?? existing.productNameSnapshot,
-      variationNameSnapshot:
-        snapshot?.variation.name ?? existing.variationNameSnapshot,
-      startingPriceThbSnapshot: snapshot
-        ? snapshot.variation.startingPriceThb
-        : existing.startingPriceThbSnapshot,
+      productNameSnapshot: snapshot?.name ?? existing.productNameSnapshot,
       quantity: input.quantity ?? existing.quantity,
+      taskOwner: input.taskOwner,
       customerId: input.customerId ?? null,
       customerName: input.customerName,
       socialChannel: input.socialChannel,
@@ -507,6 +488,8 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
       phone: normalizedValue(input.phone),
       requestDetails: input.requestDetails,
       deliveryMethod: input.deliveryMethod,
+      recipientName: normalizedValue(input.recipientName),
+      recipientPhone: normalizedValue(input.recipientPhone),
       orderAddress: normalizedValue(input.orderAddress),
       requiredDate: input.requiredDate,
       status: input.status,
@@ -523,51 +506,22 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
     if (existingRows.length === 0) throw new Error('Order not found')
     const existing = existingRows[0]
     const productId = input.productId ?? existing.productId
-    const variationId = input.variationId ?? existing.variationId
-    const selectionChanged =
-      productId !== existing.productId || variationId !== existing.variationId
-    let productSnapshot: {
-      name: string
-      variationName: string
-      startingPriceThb: string | null
-    } | null = null
-    if (selectionChanged) {
+    let productName: string | null = null
+    if (productId !== existing.productId) {
       const productRows = await tx
         .select()
         .from(products)
         .where(eq(products.id, productId))
       if (productRows.length === 0) throw new Error('Product not found')
-      const variationRows = await tx
-        .select()
-        .from(productVariations)
-        .where(
-          and(
-            eq(productVariations.id, variationId),
-            eq(productVariations.productId, productId),
-          ),
-        )
-      if (variationRows.length === 0) throw new Error('Variation not found')
-      const product = productRows[0]
-      const variation = variationRows[0]
-      productSnapshot = {
-        name: product.name,
-        variationName: variation.name,
-        startingPriceThb: variation.startingPriceThb,
-      }
+      productName = productRows[0].name
     }
     const updatedRows = await tx
       .update(orders)
       .set({
         productId,
-        variationId,
-        productNameSnapshot:
-          productSnapshot?.name ?? existing.productNameSnapshot,
-        variationNameSnapshot:
-          productSnapshot?.variationName ?? existing.variationNameSnapshot,
-        startingPriceThbSnapshot: productSnapshot
-          ? productSnapshot.startingPriceThb
-          : existing.startingPriceThbSnapshot,
+        productNameSnapshot: productName ?? existing.productNameSnapshot,
         quantity: input.quantity ?? existing.quantity,
+        taskOwner: input.taskOwner,
         customerId: input.customerId ?? null,
         customerName: input.customerName,
         socialChannel: input.socialChannel,
@@ -575,6 +529,8 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
         phone: normalizedValue(input.phone),
         requestDetails: input.requestDetails,
         deliveryMethod: input.deliveryMethod,
+        recipientName: normalizedValue(input.recipientName),
+        recipientPhone: normalizedValue(input.recipientPhone),
         orderAddress: normalizedValue(input.orderAddress),
         requiredDate: input.requiredDate,
         status: input.status,

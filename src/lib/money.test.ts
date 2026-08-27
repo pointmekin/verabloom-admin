@@ -8,7 +8,12 @@ import {
 } from './money'
 
 type OrderShape = {
-  status: 'pending_review' | 'confirmed' | 'completed' | 'cancelled'
+  status:
+    | 'pending_review'
+    | 'confirmed'
+    | 'work_in_progress'
+    | 'completed'
+    | 'cancelled'
   orderValueThb: string | null
 }
 
@@ -63,6 +68,17 @@ describe('orderTotals', () => {
     const totals = orderTotals(confirmed('1200'), [])
     expect(totals.receivedThb).toBe('0.00')
     expect(totals.outstandingThb).toBe('1200.00')
+  })
+
+  it('keeps an outstanding amount while an order is in progress', () => {
+    const totals = orderTotals(
+      { status: 'work_in_progress', orderValueThb: '1200' },
+      [payment('500')],
+    )
+    expect(totals).toEqual({
+      receivedThb: '500.00',
+      outstandingThb: '700.00',
+    })
   })
 
   it('subtracts a deposit from the outstanding amount', () => {

@@ -31,6 +31,20 @@
   --input: var(--border);
   --ring: var(--primary);
   --radius: 1rem;
+  --owner-chompooh: #b4436b;
+  --owner-chompooh-soft: #fbe0e8;
+  --owner-meen: #2f6f9e;
+  --owner-meen-soft: #dcecf8;
+  --owner-kan: #8a5a12;
+  --owner-kan-soft: #f8ecd4;
+  --owner-unassigned: var(--muted-ink);
+  --owner-unassigned-soft: rgba(33, 55, 45, 0.08);
+  --delivery-postal: #2f6f9e;
+  --delivery-postal-soft: #dcecf8;
+  --delivery-messenger: #a4531b;
+  --delivery-messenger-soft: #fbe7d6;
+  --delivery-collection: var(--leaf);
+  --delivery-collection-soft: #dce9dc;
 }
 @theme inline {
   --font-sans: 'Mali', system-ui, sans-serif;
@@ -434,6 +448,55 @@ a {
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 600;
+}
+.owner-chip,
+.delivery-chip {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.owner-chip.owner-chompooh {
+  color: var(--owner-chompooh);
+  background: var(--owner-chompooh-soft);
+}
+.owner-chip.owner-meen {
+  color: var(--owner-meen);
+  background: var(--owner-meen-soft);
+}
+.owner-chip.owner-kan {
+  color: var(--owner-kan);
+  background: var(--owner-kan-soft);
+}
+.owner-chip.owner-unassigned {
+  color: var(--owner-unassigned);
+  background: var(--owner-unassigned-soft);
+  border-style: dashed;
+}
+.owner-chip.is-large {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+}
+.delivery-chip.delivery-postal {
+  color: var(--delivery-postal);
+  background: var(--delivery-postal-soft);
+}
+.delivery-chip.delivery-messenger {
+  color: var(--delivery-messenger);
+  background: var(--delivery-messenger-soft);
+}
+.delivery-chip.delivery-collection {
+  color: var(--delivery-collection);
+  background: var(--delivery-collection-soft);
+}
+.owner-field-accent {
+  border-left: 4px solid currentColor;
+  padding-left: 0.75rem;
 }
 .welcome-panel h2 {
   margin: 1rem 0 0.5rem;

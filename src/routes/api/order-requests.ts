@@ -43,19 +43,6 @@ export const Route = createFileRoute('/api/order-requests')({
               { status: 400 },
             )
           }
-          if (
-            error instanceof Error &&
-            error.message === 'Variation not found'
-          ) {
-            return Response.json(
-              {
-                error: {
-                  fieldErrors: { variationId: ['Choose a valid variation'] },
-                },
-              },
-              { status: 400 },
-            )
-          }
           console.error('Order request submission failed', error)
           return Response.json(
             { error: 'Unable to submit order request' },

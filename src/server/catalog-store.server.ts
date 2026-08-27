@@ -1,15 +1,8 @@
 import { and, asc, eq, inArray, notInArray } from 'drizzle-orm'
 
 import { getDatabase } from '#/db'
-import { orders, productImages, productVariations, products } from '#/db/schema'
+import { productImages, products } from '#/db/schema'
 import { getObjectStorageUrl } from './storage.server'
-
-export type CatalogVariation = {
-  id: number
-  name: string
-  startingPriceThb: string | null
-  displayOrder: number
-}
 
 export type CatalogImage = {
   id: number
@@ -22,16 +15,10 @@ export type CatalogProduct = {
   id: number
   name: string
   description: string
+  startingPriceThb: string | null
   visible: boolean
   displayOrder: number
-  variations: CatalogVariation[]
   images: CatalogImage[]
-}
-
-export type ProductInputVariation = {
-  id?: number
-  name: string
-  startingPriceThb: string | null
 }
 
 export type ProductInputImage = {
@@ -44,19 +31,17 @@ export type ProductInput = {
   id?: number
   name: string
   description: string
+  startingPriceThb: string | null
   visible: boolean
-  variations: ProductInputVariation[]
   images: ProductInputImage[]
 }
 
-type MemoryProduct = Omit<CatalogProduct, 'variations' | 'images'>
+type MemoryProduct = Omit<CatalogProduct, 'images'>
 
 type MemoryState = {
   products: Map<number, MemoryProduct>
-  variations: Map<number, CatalogVariation & { productId: number }>
   images: Map<number, CatalogImage & { productId: number }>
   nextProductId: number
-  nextVariationId: number
   nextImageId: number
 }
 
@@ -67,19 +52,15 @@ const memory =
   memoryGlobal.__verabloomCatalogMemory ??
   (memoryGlobal.__verabloomCatalogMemory = {
     products: new Map(),
-    variations: new Map(),
     images: new Map(),
     nextProductId: 1,
-    nextVariationId: 1,
     nextImageId: 1,
   })
 
 export function clearCatalogMemoryForTests() {
   memory.products.clear()
-  memory.variations.clear()
   memory.images.clear()
   memory.nextProductId = 1
-  memory.nextVariationId = 1
   memory.nextImageId = 1
 }
 
@@ -102,11 +83,6 @@ function sortByDisplayOrder<T extends { displayOrder: number; id: number }>(
 function memoryProduct(product: MemoryProduct): CatalogProduct {
   return {
     ...product,
-    variations: sortByDisplayOrder(
-      [...memory.variations.values()]
-        .filter((variation) => variation.productId === product.id)
-        .map(({ productId: _productId, ...variation }) => variation),
-    ),
     images: sortByDisplayOrder(
       [...memory.images.values()]
         .filter((image) => image.productId === product.id)
@@ -123,23 +99,12 @@ function memoryProducts(visibleOnly: boolean) {
   )
 }
 
-function filterByVariation(items: CatalogProduct[], variation?: string) {
-  const query = variation?.trim().toLocaleLowerCase()
-  if (!query) return items
-  return items.filter((product) =>
-    product.variations.some((item) => item.name.toLocaleLowerCase() === query),
-  )
-}
-
 export async function listCatalogProducts({
   visibleOnly,
-  variation,
 }: {
   visibleOnly: boolean
-  variation?: string
 }) {
-  if (!useDatabase())
-    return filterByVariation(memoryProducts(visibleOnly), variation)
+  if (!useDatabase()) return memoryProducts(visibleOnly)
 
   const db = getDatabase()
   const productRows = await db
@@ -150,31 +115,19 @@ export async function listCatalogProducts({
   if (productRows.length === 0) return []
 
   const ids = productRows.map((product) => product.id)
-  const variationRows = await db
-    .select()
-    .from(productVariations)
-    .where(inArray(productVariations.productId, ids))
-    .orderBy(asc(productVariations.displayOrder), asc(productVariations.id))
   const imageRows = await db
     .select()
     .from(productImages)
     .where(inArray(productImages.productId, ids))
     .orderBy(asc(productImages.displayOrder), asc(productImages.id))
 
-  const result = productRows.map((product) => ({
+  return productRows.map((product) => ({
     id: product.id,
     name: product.name,
     description: product.description,
+    startingPriceThb: product.startingPriceThb,
     visible: product.visible,
     displayOrder: product.displayOrder,
-    variations: variationRows
-      .filter((row) => row.productId === product.id)
-      .map((row) => ({
-        id: row.id,
-        name: row.name,
-        startingPriceThb: row.startingPriceThb,
-        displayOrder: row.displayOrder,
-      })),
     images: imageRows
       .filter((image) => image.productId === product.id)
       .map((image) => ({
@@ -184,7 +137,6 @@ export async function listCatalogProducts({
         displayOrder: image.displayOrder,
       })),
   }))
-  return filterByVariation(result, variation)
 }
 
 export async function getCatalogProduct({
@@ -212,11 +164,6 @@ export async function getCatalogProduct({
     )
   if (productRows.length === 0) return null
   const product = productRows[0]
-  const variations = await db
-    .select()
-    .from(productVariations)
-    .where(eq(productVariations.productId, id))
-    .orderBy(asc(productVariations.displayOrder), asc(productVariations.id))
   const images = await db
     .select()
     .from(productImages)
@@ -226,14 +173,9 @@ export async function getCatalogProduct({
     id: product.id,
     name: product.name,
     description: product.description,
+    startingPriceThb: product.startingPriceThb,
     visible: product.visible,
     displayOrder: product.displayOrder,
-    variations: variations.map((variation) => ({
-      id: variation.id,
-      name: variation.name,
-      startingPriceThb: variation.startingPriceThb,
-      displayOrder: variation.displayOrder,
-    })),
     images: images.map((image) => ({
       id: image.id,
       objectKey: image.objectKey,
@@ -251,28 +193,11 @@ export async function saveCatalogProduct(input: ProductInput) {
       id,
       name: input.name,
       description: input.description,
+      startingPriceThb: input.startingPriceThb,
       visible: input.visible,
       displayOrder: existing?.displayOrder ?? memory.products.size,
     }
     memory.products.set(id, product)
-
-    const variationIds = new Set<number>()
-    input.variations.forEach((variation, index) => {
-      const variationId = variation.id ?? memory.nextVariationId++
-      variationIds.add(variationId)
-      memory.variations.set(variationId, {
-        id: variationId,
-        productId: id,
-        name: variation.name,
-        startingPriceThb: variation.startingPriceThb,
-        displayOrder: index,
-      })
-    })
-    for (const [variationId, variation] of memory.variations) {
-      if (variation.productId === id && !variationIds.has(variationId)) {
-        memory.variations.delete(variationId)
-      }
-    }
 
     const imageIds = new Set<number>()
     input.images.forEach((image, index) => {
@@ -303,6 +228,7 @@ export async function saveCatalogProduct(input: ProductInput) {
         .set({
           name: input.name,
           description: input.description,
+          startingPriceThb: input.startingPriceThb,
           visible: input.visible,
           updatedAt: new Date(),
         })
@@ -315,74 +241,13 @@ export async function saveCatalogProduct(input: ProductInput) {
         .values({
           name: input.name,
           description: input.description,
+          startingPriceThb: input.startingPriceThb,
           visible: input.visible,
           displayOrder: (await tx.select({ id: products.id }).from(products))
             .length,
         })
         .returning()
       savedId = created.id
-    }
-
-    const currentVariations = await tx
-      .select({ id: productVariations.id })
-      .from(productVariations)
-      .where(eq(productVariations.productId, savedId))
-    const referencedVariationRows =
-      currentVariations.length > 0
-        ? await tx
-            .select({ variationId: orders.variationId })
-            .from(orders)
-            .where(
-              inArray(
-                orders.variationId,
-                currentVariations.map((variation) => variation.id),
-              ),
-            )
-        : []
-    const referencedVariationIds = new Set(
-      referencedVariationRows.map((row) => row.variationId),
-    )
-    const variationIds = input.variations.flatMap((variation) =>
-      variation.id ? [variation.id] : [],
-    )
-    const variationIdsToDelete = currentVariations
-      .map((variation) => variation.id)
-      .filter(
-        (id) => !variationIds.includes(id) && !referencedVariationIds.has(id),
-      )
-    if (variationIdsToDelete.length > 0) {
-      await tx
-        .delete(productVariations)
-        .where(
-          and(
-            eq(productVariations.productId, savedId),
-            inArray(productVariations.id, variationIdsToDelete),
-          ),
-        )
-    }
-    for (const [index, variation] of input.variations.entries()) {
-      if (variation.id) {
-        await tx
-          .update(productVariations)
-          .set({
-            name: variation.name,
-            startingPriceThb: variation.startingPriceThb,
-            displayOrder: index,
-          })
-          .where(
-            and(
-              eq(productVariations.id, variation.id),
-              eq(productVariations.productId, savedId),
-            ),
-          )
-      } else {
-        await tx.insert(productVariations).values({
-          productId: savedId,
-          name: variation.name,
-          startingPriceThb: variation.startingPriceThb,
-          displayOrder: index,
-        })
-      }
     }
 
     const currentImages = await tx

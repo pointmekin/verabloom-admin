@@ -27,8 +27,8 @@ process.env.VERABLOOM_PAYMENT_STORE = 'memory'
 
 const baseInput = {
   productId: 1,
-  variationId: 1,
   quantity: 1,
+  taskOwner: 'chompooh' as const,
   customerName: 'Mali',
   socialChannel: 'line' as const,
   socialContact: '@mali',
@@ -45,16 +45,12 @@ async function fixtureConfirmedOrder() {
   const product = await saveCatalogProduct({
     name: 'Spring bouquet',
     description: '',
+    startingPriceThb: '890',
     visible: true,
-    variations: [{ name: 'Medium', startingPriceThb: '890' }],
     images: [],
   })
-  if (!product || !product.variations[0]) throw new Error('fixture failed')
-  await createDirectOrder({
-    ...baseInput,
-    productId: product.id,
-    variationId: product.variations[0].id,
-  })
+  if (!product) throw new Error('fixture failed')
+  await createDirectOrder({ ...baseInput, productId: product.id })
   const order = await getOrderById(1)
   if (!order) throw new Error('fixture failed')
   return order
@@ -163,6 +159,7 @@ describe('payment records', () => {
     })
     await updateOrder(order.id, {
       ...order,
+      taskOwner: 'chompooh',
       status: 'cancelled',
     })
     const payments = await listPaymentsForOrder(order.id)
@@ -186,7 +183,6 @@ describe('payment records', () => {
     const other = await createDirectOrder({
       ...baseInput,
       productId: order.productId,
-      variationId: order.variationId,
       customerName: 'Nok',
     })
     await createPayment(order.id, {

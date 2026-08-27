@@ -1,8 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft, Flower2 } from 'lucide-react'
 import { useState } from 'react'
-import { z } from 'zod'
-
 import { LanguageSwitcher } from '#/components/language-switcher'
 import { Alert, AlertDescription } from '#/components/ui/alert'
 import { Button } from '#/components/ui/button'
@@ -13,12 +11,7 @@ import { useLocale } from '#/lib/i18n'
 import { getPublicProductFn } from '#/server/catalog'
 import { orderRequestSchema } from '#/server/order'
 
-const requestSearchSchema = z.object({
-  variationId: z.coerce.number().int().positive().optional(),
-})
-
 export const Route = createFileRoute('/catalog/$productId/request')({
-  validateSearch: requestSearchSchema,
   loader: async ({ params }) => {
     const id = Number(params.productId)
     if (!Number.isSafeInteger(id) || id < 1) return null
@@ -32,13 +25,6 @@ type FieldErrors = Record<string, string>
 function OrderRequestPage() {
   const { t } = useLocale()
   const product = Route.useLoaderData()
-  const search = Route.useSearch()
-  const initialVariation =
-    product?.variations.find((item) => item.id === search.variationId) ??
-    product?.variations[0]
-  const [variationId, setVariationId] = useState(
-    initialVariation ? String(initialVariation.id) : '',
-  )
   const [deliveryMethod, setDeliveryMethod] = useState('collection')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState<string | null>(null)
@@ -68,6 +54,8 @@ function OrderRequestPage() {
     if (field === 'quantity') return t('invalidQuantity')
     if (field === 'requiredDate') return t('invalidDate')
     if (field === 'orderAddress') return t('deliveryAddressRequired')
+    if (field === 'recipientName' || field === 'recipientPhone')
+      return t('recipientRequired')
     return t('requiredField')
   }
 
@@ -79,7 +67,6 @@ function OrderRequestPage() {
     const form = new FormData(event.currentTarget)
     const parsed = orderRequestSchema.safeParse({
       productId: selectedProduct.id,
-      variationId: form.get('variationId'),
       quantity: form.get('quantity'),
       customerName: form.get('customerName'),
       socialChannel: form.get('socialChannel'),
@@ -87,6 +74,8 @@ function OrderRequestPage() {
       phone: form.get('phone'),
       requestDetails: form.get('requestDetails'),
       deliveryMethod: form.get('deliveryMethod'),
+      recipientName: form.get('recipientName') ?? '',
+      recipientPhone: form.get('recipientPhone') ?? '',
       orderAddress: form.get('orderAddress') ?? '',
       requiredDate: form.get('requiredDate'),
       honeypot: form.get('honeypot'),
@@ -208,27 +197,6 @@ function OrderRequestPage() {
               <p className="field-label">{t('selectedProduct')}</p>
               <h2>{selectedProduct.name}</h2>
             </div>
-            <div className="form-field">
-              <Label htmlFor="request-variation">
-                {t('selectedVariation')}
-              </Label>
-              <select
-                id="request-variation"
-                name="variationId"
-                aria-invalid={Boolean(fieldErrors.variationId)}
-                value={variationId}
-                onChange={(event) => setVariationId(event.target.value)}
-                required
-              >
-                <option value="">{t('selectedVariation')}</option>
-                {selectedProduct.variations.map((variation) => (
-                  <option key={variation.id} value={variation.id}>
-                    {variation.name}
-                  </option>
-                ))}
-              </select>
-              {fieldError('variationId')}
-            </div>
           </Card>
 
           <Card className="request-card">
@@ -326,18 +294,65 @@ function OrderRequestPage() {
               </select>
             </div>
 
-            {deliveryMethod !== 'collection' ? (
+            {deliveryMethod === 'messenger' ? (
               <div className="form-field">
-                <Label htmlFor="request-address">{t('orderAddress')}</Label>
+                <Label htmlFor="request-address">{t('messengerDetails')}</Label>
                 <textarea
                   id="request-address"
                   name="orderAddress"
-                  rows={4}
+                  rows={5}
                   required
+                  aria-describedby="request-address-hint"
                   aria-invalid={Boolean(fieldErrors.orderAddress)}
                 />
+                <p id="request-address-hint" className="field-hint">
+                  {t('messengerDetailsHint')}
+                </p>
                 {fieldError('orderAddress')}
               </div>
+            ) : null}
+
+            {deliveryMethod === 'postal' ? (
+              <>
+                <div className="request-fields-grid">
+                  <div className="form-field">
+                    <Label htmlFor="request-recipient-name">
+                      {t('recipientName')}
+                    </Label>
+                    <Input
+                      id="request-recipient-name"
+                      name="recipientName"
+                      required
+                      aria-invalid={Boolean(fieldErrors.recipientName)}
+                    />
+                    {fieldError('recipientName')}
+                  </div>
+                  <div className="form-field">
+                    <Label htmlFor="request-recipient-phone">
+                      {t('recipientPhone')}
+                    </Label>
+                    <Input
+                      id="request-recipient-phone"
+                      name="recipientPhone"
+                      type="tel"
+                      required
+                      aria-invalid={Boolean(fieldErrors.recipientPhone)}
+                    />
+                    {fieldError('recipientPhone')}
+                  </div>
+                </div>
+                <div className="form-field">
+                  <Label htmlFor="request-address">{t('orderAddress')}</Label>
+                  <textarea
+                    id="request-address"
+                    name="orderAddress"
+                    rows={4}
+                    required
+                    aria-invalid={Boolean(fieldErrors.orderAddress)}
+                  />
+                  {fieldError('orderAddress')}
+                </div>
+              </>
             ) : null}
 
             <div className="form-field">

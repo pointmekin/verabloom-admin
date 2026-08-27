@@ -1,9 +1,12 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Save, Trash2, UserPlus } from 'lucide-react'
 import { useState } from 'react'
+import type { z } from 'zod'
 
 import { AdminHeader } from '#/components/admin-header'
 import { AdminPaymentsSection } from '#/components/admin-payments'
+import { DeliveryBadge } from '#/components/delivery-badge'
+import { OrderOwnerBadge } from '#/components/order-owner-badge'
 import { Alert, AlertDescription } from '#/components/ui/alert'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
@@ -22,6 +25,8 @@ import { Select } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
+import { TEAM_MEMBERS, teamMemberAccentClass } from '#/lib/team-members'
+import type { TeamMember } from '#/lib/team-members'
 import {
   createAdminOrderFn,
   deleteAdminOrderFn,
@@ -64,6 +69,87 @@ export const Route = createFileRoute('/admin/orders/$orderId')({
   component: AdminOrderEditor,
 })
 
+const ORDER_FIELDS = [
+  'productId',
+  'quantity',
+  'taskOwner',
+  'customerName',
+  'socialChannel',
+  'socialContact',
+  'phone',
+  'requestDetails',
+  'deliveryMethod',
+  'recipientName',
+  'recipientPhone',
+  'orderAddress',
+  'requiredDate',
+  'status',
+  'orderValueThb',
+  'internalNote',
+] as const
+
+type OrderField = (typeof ORDER_FIELDS)[number]
+
+function isOrderField(value: unknown): value is OrderField {
+  return ORDER_FIELDS.includes(value as OrderField)
+}
+
+const ORDER_FIELD_CONTROL_IDS: Partial<Record<OrderField, string>> = {
+  productId: 'order-product',
+  quantity: 'order-quantity',
+  taskOwner: 'order-owner',
+  customerName: 'order-customer-name',
+  socialChannel: 'order-channel',
+  socialContact: 'order-contact',
+  deliveryMethod: 'order-delivery',
+  recipientName: 'order-recipient-name',
+  recipientPhone: 'order-recipient-phone',
+  orderAddress: 'order-address',
+  requiredDate: 'order-date',
+  status: 'order-status',
+  orderValueThb: 'order-value',
+}
+
+function focusField(field: OrderField | undefined) {
+  const id = field && ORDER_FIELD_CONTROL_IDS[field]
+  if (!id) return
+  const control = document.getElementById(id)
+  control?.scrollIntoView({ block: 'center' })
+  control?.focus()
+}
+
+function orderFieldMessage(
+  field: OrderField,
+  orderValue: string,
+  translate: (key: MessageKey) => string,
+) {
+  switch (field) {
+    case 'productId':
+    case 'customerName':
+    case 'socialContact':
+      return translate('requiredField')
+    case 'quantity':
+      return translate('invalidQuantity')
+    case 'taskOwner':
+      return translate('taskOwnerRequired')
+    case 'requiredDate':
+      return translate('invalidDate')
+    case 'recipientName':
+    case 'recipientPhone':
+      return translate('recipientRequired')
+    case 'orderAddress':
+      return translate('deliveryAddressRequired')
+    case 'orderValueThb':
+      return orderValue.trim()
+        ? translate('invalidOrderValue')
+        : translate('confirmedValueRequired')
+    case 'status':
+      return translate('directOrderStatus')
+    default:
+      return translate('checkForm')
+  }
+}
+
 function AdminOrderEditor() {
   const { t } = useLocale()
   const navigate = useNavigate()
@@ -93,18 +179,13 @@ function AdminOrderEditor() {
     )
   }
   const initialProduct = catalog[0]
-  const initialVariation = order
-    ? catalog
-        .find((product) => product.id === order.productId)
-        ?.variations.find((variation) => variation.id === order.variationId)
-    : initialProduct.variations[0]
   const [productId, setProductId] = useState(
     String(order ? order.productId : initialProduct.id),
   )
-  const [variationId, setVariationId] = useState(
-    String(order ? order.variationId : (initialVariation?.id ?? '')),
-  )
   const [quantity, setQuantity] = useState(String(order ? order.quantity : 1))
+  const [taskOwner, setTaskOwner] = useState<TeamMember | ''>(
+    order?.taskOwner ?? '',
+  )
   const [customerId, setCustomerId] = useState(
     String(order ? (order.customerId ?? '') : ''),
   )
@@ -119,6 +200,10 @@ function AdminOrderEditor() {
   )
   const [deliveryMethod, setDeliveryMethod] = useState(
     order?.deliveryMethod ?? 'collection',
+  )
+  const [recipientName, setRecipientName] = useState(order?.recipientName ?? '')
+  const [recipientPhone, setRecipientPhone] = useState(
+    order?.recipientPhone ?? '',
   )
   const [orderAddress, setOrderAddress] = useState(order?.orderAddress ?? '')
   const [requiredDate, setRequiredDate] = useState(order?.requiredDate ?? '')
@@ -139,9 +224,11 @@ function AdminOrderEditor() {
   const [newCustomerAddress, setNewCustomerAddress] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<OrderField, string>>
+  >({})
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
-  const selectedProduct = catalog.find((item) => item.id === Number(productId))
   const filteredCustomers = customers.filter((item) => {
     const query = customerSearch.trim().toLocaleLowerCase()
     return (
@@ -170,15 +257,19 @@ function AdminOrderEditor() {
     const key: MessageKey =
       message === 'Address is required for delivery'
         ? 'deliveryAddressRequired'
-        : message.includes('Confirmed orders require')
-          ? 'confirmedValueRequired'
-          : message.includes('valid Thai baht')
-            ? 'invalidOrderValue'
-            : message.includes('Quantity must')
-              ? 'invalidQuantity'
-              : message.includes('Direct orders must')
-                ? 'directOrderStatus'
-                : 'saveError'
+        : message.includes('recipient details')
+          ? 'recipientRequired'
+          : message.includes('task owner')
+            ? 'taskOwnerRequired'
+            : message.includes('Confirmed orders require')
+              ? 'confirmedValueRequired'
+              : message.includes('valid Thai baht')
+                ? 'invalidOrderValue'
+                : message.includes('Quantity must')
+                  ? 'invalidQuantity'
+                  : message.includes('Direct orders must')
+                    ? 'directOrderStatus'
+                    : 'saveError'
     return t(key)
   }
 
@@ -200,9 +291,23 @@ function AdminOrderEditor() {
     return saved
   }
 
+  function reportIssues(issues: readonly z.core.$ZodIssue[]) {
+    const next: Partial<Record<OrderField, string>> = {}
+    for (const issue of issues) {
+      const field = issue.path[0]
+      if (!isOrderField(field) || next[field]) continue
+      next[field] = orderFieldMessage(field, orderValueThb, t)
+    }
+    setFieldErrors(next)
+    const firstField = ORDER_FIELDS.find((field) => next[field])
+    setError(firstField ? next[firstField]! : t('checkForm'))
+    focusField(firstField)
+  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+    setFieldErrors({})
     setSaving(true)
     try {
       let effectiveCustomerId = customerId ? Number(customerId) : null
@@ -220,8 +325,8 @@ function AdminOrderEditor() {
       }
       const base = {
         productId: Number(productId),
-        variationId: Number(variationId),
         quantity: Number(quantity),
+        taskOwner,
         customerId: effectiveCustomerId,
         customerName: effectiveCustomerName,
         socialChannel: effectiveSocialChannel,
@@ -229,6 +334,8 @@ function AdminOrderEditor() {
         phone: effectivePhone,
         requestDetails,
         deliveryMethod,
+        recipientName,
+        recipientPhone,
         orderAddress,
         requiredDate,
         status,
@@ -236,14 +343,11 @@ function AdminOrderEditor() {
         internalNote,
       }
       if (isNew) {
-        const parsed = directOrderSchema.safeParse({
-          ...base,
-          productId: Number(productId),
-          variationId: Number(variationId),
-          quantity: Number(quantity),
-        })
-        if (!parsed.success)
-          throw new Error(parsed.error.issues[0]?.message ?? t('checkForm'))
+        const parsed = directOrderSchema.safeParse(base)
+        if (!parsed.success) {
+          reportIssues(parsed.error.issues)
+          return
+        }
         const saved = await createAdminOrderFn({ data: parsed.data })
         await navigate({
           to: '/admin/orders/$orderId',
@@ -251,8 +355,10 @@ function AdminOrderEditor() {
         })
       } else {
         const parsed = orderUpdateSchema.safeParse(base)
-        if (!parsed.success)
-          throw new Error(parsed.error.issues[0]?.message ?? t('checkForm'))
+        if (!parsed.success) {
+          reportIssues(parsed.error.issues)
+          return
+        }
         await saveAdminOrderFn({ data: { id: order!.id, ...parsed.data } })
         await navigate({
           to: '/admin/orders/$orderId',
@@ -293,6 +399,10 @@ function AdminOrderEditor() {
           <div>
             <p className="eyebrow">{t('adminProtected')}</p>
             <h1>{isNew ? t('createOrder') : order!.requestReference}</h1>
+            <div className="order-heading-badges">
+              <OrderOwnerBadge owner={taskOwner || null} size="large" />
+              <DeliveryBadge method={deliveryMethod} />
+            </div>
           </div>
           {order ? (
             <Button
@@ -311,6 +421,38 @@ function AdminOrderEditor() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
+          <Card
+            className={`editor-card ${teamMemberAccentClass(taskOwner || null)}`}
+          >
+            <div className="editor-card-heading">
+              <h2>{t('taskOwner')}</h2>
+              <OrderOwnerBadge owner={taskOwner || null} />
+            </div>
+            <div className="form-field owner-field-accent">
+              <Label htmlFor="order-owner">{t('taskOwner')}</Label>
+              <Select
+                id="order-owner"
+                value={taskOwner}
+                onChange={(event) =>
+                  setTaskOwner(event.target.value as TeamMember | '')
+                }
+              >
+                <option value="">{t('unassigned')}</option>
+                {TEAM_MEMBERS.map((member) => (
+                  <option key={member} value={member}>
+                    {t(`payer_${member}` as MessageKey)}
+                  </option>
+                ))}
+              </Select>
+              {fieldErrors.taskOwner ? (
+                <p className="field-error" role="alert">
+                  {fieldErrors.taskOwner}
+                </p>
+              ) : (
+                <p className="field-hint">{t('taskOwnerRequired')}</p>
+              )}
+            </div>
+          </Card>
           <Card className="editor-card">
             <div className="editor-card-heading">
               <h2>{t('selectedProduct')}</h2>
@@ -321,16 +463,7 @@ function AdminOrderEditor() {
                 <Select
                   id="order-product"
                   value={productId}
-                  onChange={(event) => {
-                    setProductId(event.target.value)
-                    setVariationId(
-                      String(
-                        catalog.find(
-                          (item) => item.id === Number(event.target.value),
-                        )?.variations[0]?.id ?? '',
-                      ),
-                    )
-                  }}
+                  onChange={(event) => setProductId(event.target.value)}
                 >
                   <option value="">{t('selectedProduct')}</option>
                   {catalog.map((item) => (
@@ -339,23 +472,27 @@ function AdminOrderEditor() {
                     </option>
                   ))}
                 </Select>
+                {fieldErrors.productId ? (
+                  <p className="field-error" role="alert">
+                    {fieldErrors.productId}
+                  </p>
+                ) : null}
               </div>
               <div className="form-field">
-                <Label htmlFor="order-variation">
-                  {t('selectedVariation')}
-                </Label>
-                <Select
-                  id="order-variation"
-                  value={variationId}
-                  onChange={(event) => setVariationId(event.target.value)}
-                >
-                  <option value="">{t('selectedVariation')}</option>
-                  {selectedProduct?.variations.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </Select>
+                <Label htmlFor="order-quantity">{t('quantity')}</Label>
+                <Input
+                  id="order-quantity"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={quantity}
+                  onChange={(event) => setQuantity(event.target.value)}
+                />
+                {fieldErrors.quantity ? (
+                  <p className="field-error" role="alert">
+                    {fieldErrors.quantity}
+                  </p>
+                ) : null}
               </div>
             </div>
             <Dialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
@@ -383,17 +520,6 @@ function AdminOrderEditor() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <div className="form-field">
-              <Label htmlFor="order-quantity">{t('quantity')}</Label>
-              <Input
-                id="order-quantity"
-                type="number"
-                min="1"
-                step="1"
-                value={quantity}
-                onChange={(event) => setQuantity(event.target.value)}
-              />
-            </div>
           </Card>
           <Card className="editor-card">
             <div className="editor-card-heading">
@@ -502,6 +628,11 @@ function AdminOrderEditor() {
                   value={customerName}
                   onChange={(event) => setCustomerName(event.target.value)}
                 />
+                {fieldErrors.customerName ? (
+                  <p className="field-error" role="alert">
+                    {fieldErrors.customerName}
+                  </p>
+                ) : null}
               </div>
               <div className="form-field">
                 <Label htmlFor="order-channel">{t('socialChannel')}</Label>
@@ -526,6 +657,11 @@ function AdminOrderEditor() {
                   value={socialContact}
                   onChange={(event) => setSocialContact(event.target.value)}
                 />
+                {fieldErrors.socialContact ? (
+                  <p className="field-error" role="alert">
+                    {fieldErrors.socialContact}
+                  </p>
+                ) : null}
               </div>
               <div className="form-field">
                 <Label htmlFor="order-phone">{t('phone')}</Label>
@@ -552,6 +688,9 @@ function AdminOrderEditor() {
                     {t('status_pending_review')}
                   </option>
                   <option value="confirmed">{t('status_confirmed')}</option>
+                  <option value="work_in_progress">
+                    {t('status_work_in_progress')}
+                  </option>
                   {isNew ? null : (
                     <option value="completed">{t('status_completed')}</option>
                   )}
@@ -559,6 +698,11 @@ function AdminOrderEditor() {
                     <option value="cancelled">{t('status_cancelled')}</option>
                   )}
                 </Select>
+                {fieldErrors.status ? (
+                  <p className="field-error" role="alert">
+                    {fieldErrors.status}
+                  </p>
+                ) : null}
               </div>
               <div className="form-field">
                 <Label htmlFor="order-value">{t('orderValue')}</Label>
@@ -569,7 +713,13 @@ function AdminOrderEditor() {
                   value={orderValueThb}
                   onChange={(event) => setOrderValueThb(event.target.value)}
                 />
-                <p className="field-hint">{t('orderValueHint')}</p>
+                {fieldErrors.orderValueThb ? (
+                  <p className="field-error" role="alert">
+                    {fieldErrors.orderValueThb}
+                  </p>
+                ) : (
+                  <p className="field-hint">{t('orderValueHint')}</p>
+                )}
               </div>
             </div>
             <div className="editor-columns">
@@ -594,6 +744,7 @@ function AdminOrderEditor() {
                   <option value="messenger">{t('messenger')}</option>
                   <option value="collection">{t('collection')}</option>
                 </Select>
+                <DeliveryBadge method={deliveryMethod} />
               </div>
               <div className="form-field">
                 <Label htmlFor="order-date">{t('requiredDate')}</Label>
@@ -603,18 +754,84 @@ function AdminOrderEditor() {
                   value={requiredDate}
                   onChange={(event) => setRequiredDate(event.target.value)}
                 />
+                {fieldErrors.requiredDate ? (
+                  <p className="field-error" role="alert">
+                    {fieldErrors.requiredDate}
+                  </p>
+                ) : null}
               </div>
             </div>
-            {deliveryMethod !== 'collection' ? (
+            {deliveryMethod === 'messenger' ? (
               <div className="form-field">
-                <Label htmlFor="order-address">{t('orderAddress')}</Label>
+                <Label htmlFor="order-address">{t('messengerDetails')}</Label>
                 <Textarea
                   id="order-address"
-                  rows={4}
+                  rows={5}
                   value={orderAddress}
                   onChange={(event) => setOrderAddress(event.target.value)}
                 />
+                {fieldErrors.orderAddress ? (
+                  <p className="field-error" role="alert">
+                    {fieldErrors.orderAddress}
+                  </p>
+                ) : (
+                  <p className="field-hint">{t('messengerDetailsHint')}</p>
+                )}
               </div>
+            ) : null}
+            {deliveryMethod === 'postal' ? (
+              <>
+                <div className="editor-columns">
+                  <div className="form-field">
+                    <Label htmlFor="order-recipient-name">
+                      {t('recipientName')}
+                    </Label>
+                    <Input
+                      id="order-recipient-name"
+                      value={recipientName}
+                      onChange={(event) =>
+                        setRecipientName(event.target.value)
+                      }
+                    />
+                    {fieldErrors.recipientName ? (
+                      <p className="field-error" role="alert">
+                        {fieldErrors.recipientName}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="form-field">
+                    <Label htmlFor="order-recipient-phone">
+                      {t('recipientPhone')}
+                    </Label>
+                    <Input
+                      id="order-recipient-phone"
+                      value={recipientPhone}
+                      onChange={(event) =>
+                        setRecipientPhone(event.target.value)
+                      }
+                    />
+                    {fieldErrors.recipientPhone ? (
+                      <p className="field-error" role="alert">
+                        {fieldErrors.recipientPhone}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="form-field">
+                  <Label htmlFor="order-address">{t('orderAddress')}</Label>
+                  <Textarea
+                    id="order-address"
+                    rows={4}
+                    value={orderAddress}
+                    onChange={(event) => setOrderAddress(event.target.value)}
+                  />
+                  {fieldErrors.orderAddress ? (
+                    <p className="field-error" role="alert">
+                      {fieldErrors.orderAddress}
+                    </p>
+                  ) : null}
+                </div>
+              </>
             ) : null}
             <div className="form-field">
               <Label htmlFor="order-details">{t('requestDetails')}</Label>

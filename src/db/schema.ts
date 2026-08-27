@@ -13,6 +13,7 @@ export const products = pgTable('products', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description').notNull().default(''),
+  startingPriceThb: numeric('starting_price_thb', { precision: 12, scale: 2 }),
   visible: boolean('visible').notNull().default(true),
   displayOrder: integer('display_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true })
@@ -21,16 +22,6 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
-})
-
-export const productVariations = pgTable('product_variations', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id')
-    .notNull()
-    .references(() => products.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  startingPriceThb: numeric('starting_price_thb', { precision: 12, scale: 2 }),
-  displayOrder: integer('display_order').notNull().default(0),
 })
 
 export const productImages = pgTable('product_images', {
@@ -67,22 +58,17 @@ export const orders = pgTable('orders', {
   productId: integer('product_id')
     .notNull()
     .references(() => products.id, { onDelete: 'restrict' }),
-  variationId: integer('variation_id')
-    .notNull()
-    .references(() => productVariations.id, { onDelete: 'restrict' }),
   productNameSnapshot: text('product_name_snapshot').notNull(),
-  variationNameSnapshot: text('variation_name_snapshot').notNull(),
-  startingPriceThbSnapshot: numeric('starting_price_thb_snapshot', {
-    precision: 12,
-    scale: 2,
-  }),
   quantity: integer('quantity').notNull(),
+  taskOwner: text('task_owner'),
   customerName: text('customer_name').notNull(),
   socialChannel: text('social_channel').notNull(),
   socialContact: text('social_contact').notNull(),
   phone: text('phone'),
   requestDetails: text('request_details').notNull().default(''),
   deliveryMethod: text('delivery_method').notNull(),
+  recipientName: text('recipient_name'),
+  recipientPhone: text('recipient_phone'),
   orderAddress: text('order_address'),
   requiredDate: date('required_date', { mode: 'string' }).notNull(),
   customerId: integer('customer_id').references(() => customers.id, {
@@ -135,7 +121,6 @@ export const expenses = pgTable('expenses', {
 })
 
 export type Product = typeof products.$inferSelect
-export type ProductVariation = typeof productVariations.$inferSelect
 export type ProductImage = typeof productImages.$inferSelect
 export type Customer = typeof customers.$inferSelect
 export type Order = typeof orders.$inferSelect

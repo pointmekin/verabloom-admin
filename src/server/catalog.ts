@@ -7,12 +7,6 @@ const priceSchema = z
   .regex(/^\d+(?:\.\d{1,2})?$/, 'Enter a valid Thai baht amount')
   .nullable()
 
-const variationSchema = z.object({
-  id: z.number().int().positive().optional(),
-  name: z.string().trim().min(1).max(160),
-  startingPriceThb: priceSchema.default(null),
-})
-
 const imageSchema = z.object({
   id: z.number().int().positive().optional(),
   objectKey: z
@@ -29,8 +23,8 @@ export const productInputSchema = z.object({
   id: z.number().int().positive().optional(),
   name: z.string().trim().min(1).max(240),
   description: z.string().max(50_000).default(''),
+  startingPriceThb: priceSchema.default(null),
   visible: z.boolean().default(true),
-  variations: z.array(variationSchema).max(50).default([]),
   images: z.array(imageSchema).max(30).default([]),
 })
 
@@ -41,26 +35,12 @@ async function assertAdmin() {
   if (!(await hasAdminSession())) throw new Error('Unauthorized')
 }
 
-export const listPublicCatalogFn = createServerFn({ method: 'GET' })
-  .validator(z.object({ variation: z.string().optional() }))
-  .handler(async ({ data }) => {
+export const listPublicCatalogFn = createServerFn({ method: 'GET' }).handler(
+  async () => {
     const { listCatalogProducts } = await import('./catalog-store.server')
-    return listCatalogProducts({ visibleOnly: true, variation: data.variation })
-  })
-
-export const listCatalogVariationsFn = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  const { listCatalogProducts } = await import('./catalog-store.server')
-  const products = await listCatalogProducts({ visibleOnly: true })
-  return [
-    ...new Set(
-      products.flatMap((product) =>
-        product.variations.map((item) => item.name),
-      ),
-    ),
-  ].sort((a, b) => a.localeCompare(b))
-})
+    return listCatalogProducts({ visibleOnly: true })
+  },
+)
 
 export const getPublicProductFn = createServerFn({ method: 'GET' })
   .validator(productIdSchema)

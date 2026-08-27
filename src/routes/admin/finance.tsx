@@ -3,6 +3,7 @@ import { ArrowRight, CalendarRange } from 'lucide-react'
 import { useState } from 'react'
 
 import { AdminHeader } from '#/components/admin-header'
+import { OrderOwnerBadge } from '#/components/order-owner-badge'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
@@ -20,6 +21,8 @@ import { bangkokTodayIso } from '#/lib/finance'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
 import { formatThb } from '#/lib/money'
+import { teamMemberAccentClass } from '#/lib/team-members'
+import type { TeamMember } from '#/lib/team-members'
 import {
   getAdminFinanceReportFn,
   reportingPeriodSchema,
@@ -53,6 +56,10 @@ const payerLabels: Record<AdminExpensePayer, MessageKey> = {
   chompooh: 'payer_chompooh',
   meen: 'payer_meen',
   kan: 'payer_kan',
+}
+
+function memberLabel(member: TeamMember | 'unassigned'): MessageKey {
+  return member === 'unassigned' ? 'unassigned' : payerLabels[member]
 }
 
 function AdminFinancePage() {
@@ -152,6 +159,44 @@ function AdminFinancePage() {
 
         <Card className="editor-card">
           <div className="editor-card-heading">
+            <h2>{t('byTeamMember')}</h2>
+          </div>
+          <div className="orders-table-wrap">
+            <Table className="orders-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('taskOwner')}</TableHead>
+                  <TableHead>{t('earnedColumn')}</TableHead>
+                  <TableHead>{t('paidColumn')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {report.teamMembers.map((row) => (
+                  <TableRow key={row.member}>
+                    <TableCell data-label={t('taskOwner')}>
+                      <span
+                        className={`owner-chip ${teamMemberAccentClass(
+                          row.member === 'unassigned' ? null : row.member,
+                        )}`}
+                      >
+                        {t(memberLabel(row.member))}
+                      </span>
+                    </TableCell>
+                    <TableCell data-label={t('earnedColumn')}>
+                      {formatThb(row.earnedThb)}
+                    </TableCell>
+                    <TableCell data-label={t('paidColumn')}>
+                      {formatThb(row.paidThb)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+
+        <Card className="editor-card">
+          <div className="editor-card-heading">
             <h2>{t('payments')}</h2>
             <Badge variant="secondary">{report.payments.length}</Badge>
           </div>
@@ -163,6 +208,7 @@ function AdminFinancePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('customerColumn')}</TableHead>
+                    <TableHead>{t('taskOwner')}</TableHead>
                     <TableHead>{t('requestReference')}</TableHead>
                     <TableHead>{t('amountColumn')}</TableHead>
                     <TableHead>{t('paymentDate')}</TableHead>
@@ -174,6 +220,9 @@ function AdminFinancePage() {
                     <TableRow key={row.id}>
                       <TableCell data-label={t('customerColumn')}>
                         <strong>{row.customerName}</strong>
+                      </TableCell>
+                      <TableCell data-label={t('taskOwner')}>
+                        <OrderOwnerBadge owner={row.taskOwner} />
                       </TableCell>
                       <TableCell data-label={t('requestReference')}>
                         <Link

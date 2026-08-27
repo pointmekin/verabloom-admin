@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
+import { TEAM_MEMBERS } from '#/lib/team-members'
+
 const dateSchema = z
   .string()
   .trim()
@@ -21,7 +23,7 @@ const moneySchema = z
   .trim()
   .regex(/^\d+(?:\.\d{1,2})?$/, 'Enter a valid Thai baht amount')
 
-export const expensePayerSchema = z.enum(['chompooh', 'meen', 'kan'])
+export const expensePayerSchema = z.enum(TEAM_MEMBERS)
 
 const optionalQuantitySchema = z.preprocess(
   (value) => (value === '' || value === undefined ? null : value),

@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Plus, Save, Trash2, Upload, X } from 'lucide-react'
+import { ArrowLeft, Save, Trash2, Upload } from 'lucide-react'
 import { useState } from 'react'
 
 import { AdminHeader } from '#/components/admin-header'
@@ -18,12 +18,6 @@ import {
   uploadProductImageFn,
 } from '#/server/catalog'
 import { getPendingOrderCountFn } from '#/server/admin-order'
-
-type EditableVariation = {
-  id?: number
-  name: string
-  startingPriceThb: string | null
-}
 
 type EditableImage = {
   id?: number
@@ -73,21 +67,13 @@ function AdminProductEditor() {
   const [name, setName] = useState(product?.name ?? '')
   const [description, setDescription] = useState(product?.description ?? '')
   const [visible, setVisible] = useState(product?.visible ?? true)
-  const [variations, setVariations] = useState<EditableVariation[]>(
-    product?.variations ?? [],
+  const [startingPriceThb, setStartingPriceThb] = useState(
+    product?.startingPriceThb ?? '',
   )
   const [images, setImages] = useState<EditableImage[]>(product?.images ?? [])
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-
-  function updateVariation(index: number, update: Partial<EditableVariation>) {
-    setVariations((current) =>
-      current.map((variation, itemIndex) =>
-        itemIndex === index ? { ...variation, ...update } : variation,
-      ),
-    )
-  }
 
   function moveImage(index: number, direction: -1 | 1) {
     const nextIndex = index + direction
@@ -109,16 +95,6 @@ function AdminProductEditor() {
     })
   }
 
-  function moveVariation(index: number, direction: -1 | 1) {
-    const nextIndex = index + direction
-    if (nextIndex < 0 || nextIndex >= variations.length) return
-    setVariations((current) => {
-      const next = [...current]
-      ;[next[index], next[nextIndex]] = [next[nextIndex], next[index]]
-      return next
-    })
-  }
-
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
@@ -126,11 +102,8 @@ function AdminProductEditor() {
       id: product?.id,
       name,
       description,
+      startingPriceThb: startingPriceThb.trim() || null,
       visible,
-      variations: variations.map((variation) => ({
-        ...variation,
-        startingPriceThb: variation.startingPriceThb?.trim() || null,
-      })),
       images,
     }
     const parsed = productInputSchema.safeParse(payload)
@@ -161,12 +134,8 @@ function AdminProductEditor() {
             id: saved.id,
             name: saved.name,
             description: saved.description,
+            startingPriceThb: saved.startingPriceThb,
             visible: saved.visible,
-            variations: saved.variations.map((variation) => ({
-              id: variation.id,
-              name: variation.name,
-              startingPriceThb: variation.startingPriceThb,
-            })),
             images: [...saved.images, ...uploaded],
           },
         })
@@ -234,6 +203,18 @@ function AdminProductEditor() {
               />
               <p className="field-hint">{t('markdownGuide')}</p>
             </div>
+            <div className="form-field">
+              <Label htmlFor="product-price">{t('priceThb')}</Label>
+              <Input
+                id="product-price"
+                inputMode="decimal"
+                min="0"
+                placeholder="0.00"
+                value={startingPriceThb}
+                onChange={(event) => setStartingPriceThb(event.target.value)}
+              />
+              <p className="field-hint">{t('indicativePriceNote')}</p>
+            </div>
             <div className="visibility-field">
               <input
                 id="product-visible"
@@ -246,96 +227,6 @@ function AdminProductEditor() {
           </Card>
 
           <div className="editor-columns">
-            <Card className="editor-card">
-              <div className="editor-card-heading">
-                <div>
-                  <h2>{t('variationsEditor')}</h2>
-                  <p>{t('priceThb')}</p>
-                </div>
-                <Button
-                  onClick={() =>
-                    setVariations((current) => [
-                      ...current,
-                      { name: '', startingPriceThb: null },
-                    ])
-                  }
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <Plus size={15} />
-                  {t('addVariation')}
-                </Button>
-              </div>
-              <div className="variation-editor-list">
-                {variations.map((variation, index) => (
-                  <div
-                    className="variation-editor-row"
-                    key={variation.id ?? `new-${index}`}
-                  >
-                    <Input
-                      aria-label={t('variationName')}
-                      placeholder={t('variationName')}
-                      required
-                      value={variation.name}
-                      onChange={(event) =>
-                        updateVariation(index, { name: event.target.value })
-                      }
-                    />
-                    <Input
-                      aria-label={t('priceThb')}
-                      inputMode="decimal"
-                      min="0"
-                      placeholder="0.00"
-                      value={variation.startingPriceThb ?? ''}
-                      onChange={(event) =>
-                        updateVariation(index, {
-                          startingPriceThb: event.target.value || null,
-                        })
-                      }
-                    />
-                    <div className="variation-editor-actions">
-                      <Button
-                        aria-label={t('moveUp')}
-                        disabled={index === 0}
-                        onClick={() => moveVariation(index, -1)}
-                        size="icon"
-                        type="button"
-                        variant="ghost"
-                      >
-                        ↑
-                      </Button>
-                      <Button
-                        aria-label={t('moveDown')}
-                        disabled={index === variations.length - 1}
-                        onClick={() => moveVariation(index, 1)}
-                        size="icon"
-                        type="button"
-                        variant="ghost"
-                      >
-                        ↓
-                      </Button>
-                      <Button
-                        aria-label={t('remove')}
-                        onClick={() =>
-                          setVariations((current) =>
-                            current.filter(
-                              (_, itemIndex) => itemIndex !== index,
-                            ),
-                          )
-                        }
-                        size="icon"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <X size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
             <Card className="editor-card">
               <div className="editor-card-heading">
                 <div>

@@ -31,12 +31,6 @@ export const orderRequestSchema = z
         (value) => Number.isSafeInteger(value) && value > 0,
         'Choose a product',
       ),
-    variationId: z.coerce
-      .number()
-      .refine(
-        (value) => Number.isSafeInteger(value) && value > 0,
-        'Choose a variation',
-      ),
     quantity: z.coerce
       .number()
       .refine(
@@ -49,6 +43,8 @@ export const orderRequestSchema = z
     phone: z.string().trim().max(60).default(''),
     requestDetails: z.string().trim().max(5000).default(''),
     deliveryMethod: deliveryMethodSchema,
+    recipientName: z.string().trim().max(200).default(''),
+    recipientPhone: z.string().trim().max(60).default(''),
     orderAddress: z.string().trim().max(1000).default(''),
     requiredDate: z
       .string()
@@ -69,6 +65,22 @@ export const orderRequestSchema = z
         path: ['orderAddress'],
         message: 'Address is required for delivery',
       })
+    }
+    if (value.deliveryMethod === 'postal') {
+      if (!value.recipientName) {
+        context.addIssue({
+          code: 'custom',
+          path: ['recipientName'],
+          message: 'Postal orders require recipient details',
+        })
+      }
+      if (!value.recipientPhone) {
+        context.addIssue({
+          code: 'custom',
+          path: ['recipientPhone'],
+          message: 'Postal orders require recipient details',
+        })
+      }
     }
   })
 

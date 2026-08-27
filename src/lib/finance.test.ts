@@ -12,6 +12,7 @@ import {
   outstandingTotalThb,
   receivedIncomeThb,
   recordedExpensesThb,
+  teamMemberTotals,
 } from './finance'
 import type { OrderWithPaymentsLike } from './finance'
 
@@ -296,5 +297,38 @@ describe('monthlyFinanceSeries', () => {
     expect(series).toHaveLength(6)
     expect(series.every((month) => month.incomeSatang === 0)).toBe(true)
     expect(series.every((month) => month.expensesSatang === 0)).toBe(true)
+  })
+})
+
+describe('teamMemberTotals', () => {
+  it('attributes income to the order owner and expenses to the payer', () => {
+    const totals = teamMemberTotals(
+      [
+        { amountThb: '500', taskOwner: 'chompooh' },
+        { amountThb: '250.50', taskOwner: 'chompooh' },
+        { amountThb: '100', taskOwner: 'kan' },
+      ],
+      [
+        { totalAmountThb: '60', payer: 'meen' },
+        { totalAmountThb: '40.25', payer: 'meen' },
+      ],
+    )
+    expect(totals).toEqual([
+      { member: 'chompooh', earnedThb: '750.50', paidThb: '0.00' },
+      { member: 'meen', earnedThb: '0.00', paidThb: '100.25' },
+      { member: 'kan', earnedThb: '100.00', paidThb: '0.00' },
+    ])
+  })
+
+  it('adds an unassigned row only when an unowned order has income', () => {
+    const totals = teamMemberTotals(
+      [{ amountThb: '80', taskOwner: null }],
+      [],
+    )
+    expect(totals.at(-1)).toEqual({
+      member: 'unassigned',
+      earnedThb: '80.00',
+      paidThb: '0.00',
+    })
   })
 })
