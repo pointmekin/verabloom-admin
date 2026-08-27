@@ -98,8 +98,26 @@ export const orders = pgTable('orders', {
     .defaultNow(),
 })
 
+export const payments = pgTable('payments', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id')
+    .notNull()
+    .references(() => orders.id, { onDelete: 'cascade' }),
+  amountThb: numeric('amount_thb', { precision: 12, scale: 2 }).notNull(),
+  paymentDate: date('payment_date', { mode: 'string' }).notNull(),
+  method: text('method').notNull(),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 export type Product = typeof products.$inferSelect
 export type ProductVariation = typeof productVariations.$inferSelect
 export type ProductImage = typeof productImages.$inferSelect
 export type Customer = typeof customers.$inferSelect
 export type Order = typeof orders.$inferSelect
+export type Payment = typeof payments.$inferSelect

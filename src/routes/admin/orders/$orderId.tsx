@@ -3,6 +3,7 @@ import { ArrowLeft, Save, Trash2, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 
 import { AdminHeader } from '#/components/admin-header'
+import { AdminPaymentsSection } from '#/components/admin-payments'
 import { Alert, AlertDescription } from '#/components/ui/alert'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
@@ -35,6 +36,7 @@ import {
   listAdminCustomersFn,
   saveAdminCustomerFn,
 } from '#/server/admin-customer'
+import { listOrderPaymentsFn } from '#/server/admin-payment'
 import type { AdminOrderStatus } from '#/server/admin-order'
 
 export const Route = createFileRoute('/admin/orders/$orderId')({
@@ -43,15 +45,21 @@ export const Route = createFileRoute('/admin/orders/$orderId')({
       getRequiredAdminFn(),
     ),
   loader: async ({ params }) => {
-    const [order, customers, catalog, pendingCount] = await Promise.all([
-      params.orderId === 'new'
-        ? Promise.resolve(null)
-        : getAdminOrderFn({ data: { id: Number(params.orderId) } }),
-      listAdminCustomersFn({ data: {} }),
-      listAdminCatalogFn(),
-      getPendingOrderCountFn(),
-    ])
-    return { order, customers, catalog, pendingCount }
+    const [order, customers, catalog, pendingCount, payments] =
+      await Promise.all([
+        params.orderId === 'new'
+          ? Promise.resolve(null)
+          : getAdminOrderFn({ data: { id: Number(params.orderId) } }),
+        listAdminCustomersFn({ data: {} }),
+        listAdminCatalogFn(),
+        getPendingOrderCountFn(),
+        params.orderId === 'new'
+          ? Promise.resolve([])
+          : listOrderPaymentsFn({
+              data: { orderId: Number(params.orderId) },
+            }),
+      ])
+    return { order, customers, catalog, pendingCount, payments }
   },
   component: AdminOrderEditor,
 })
@@ -64,6 +72,7 @@ function AdminOrderEditor() {
     customers: initialCustomers,
     catalog,
     pendingCount,
+    payments,
   } = Route.useLoaderData()
   const isNew = Route.useParams().orderId === 'new'
   if (!isNew && !order) {
@@ -640,6 +649,17 @@ function AdminOrderEditor() {
             </Button>
           </div>
         </form>
+        {order && !isNew ? (
+          <div className="payments-section">
+            <AdminPaymentsSection
+              cancelled={order.status === 'cancelled'}
+              orderId={order.id}
+              orderValueThb={order.orderValueThb}
+              payments={payments}
+              status={order.status}
+            />
+          </div>
+        ) : null}
       </main>
     </div>
   )

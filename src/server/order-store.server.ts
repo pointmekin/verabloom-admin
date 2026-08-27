@@ -592,6 +592,10 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
 export async function deleteOrder(id: number) {
   if (!useDatabase()) {
     if (!memory.orders.delete(id)) throw new Error('Order not found')
+    const { deletePaymentsForOrder } = await import(
+      './payment-store.server'
+    )
+    await deletePaymentsForOrder(id)
     return true as const
   }
   const deleted = await getDatabase()
