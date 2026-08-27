@@ -20,6 +20,7 @@ import { Route as AdminCatalogIndexRouteImport } from './routes/admin/catalog/in
 import { Route as AdminCatalogProductIdRouteImport } from './routes/admin/catalog/$productId'
 import { Route as AdminCustomersIndexRouteImport } from './routes/admin/customers/index'
 import { Route as AdminCustomersCustomerIdRouteImport } from './routes/admin/customers/$customerId'
+import { Route as AdminExpensesIndexRouteImport } from './routes/admin/expenses/index'
 import { Route as AdminOrdersIndexRouteImport } from './routes/admin/orders/index'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin/orders/$orderId'
 import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
@@ -87,6 +88,11 @@ const AdminCustomersCustomerIdRoute =
     path: '/admin/customers/$customerId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminExpensesIndexRoute = AdminExpensesIndexRouteImport.update({
+  id: '/admin/expenses/',
+  path: '/admin/expenses/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminOrdersIndexRoute = AdminOrdersIndexRouteImport.update({
   id: '/admin/orders/',
   path: '/admin/orders/',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/catalog/$productId/request': typeof CatalogProductIdRequestRoute
   '/admin/catalog/': typeof AdminCatalogIndexRoute
   '/admin/customers/': typeof AdminCustomersIndexRoute
+  '/admin/expenses/': typeof AdminExpensesIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/api/admin/catalog/images': typeof ApiAdminCatalogImagesRoute
   '/api/admin/catalog/products': typeof ApiAdminCatalogProductsRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/catalog/$productId/request': typeof CatalogProductIdRequestRoute
   '/admin/catalog': typeof AdminCatalogIndexRoute
   '/admin/customers': typeof AdminCustomersIndexRoute
+  '/admin/expenses': typeof AdminExpensesIndexRoute
   '/admin/orders': typeof AdminOrdersIndexRoute
   '/api/admin/catalog/images': typeof ApiAdminCatalogImagesRoute
   '/api/admin/catalog/products': typeof ApiAdminCatalogProductsRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/catalog/$productId/request': typeof CatalogProductIdRequestRoute
   '/admin/catalog/': typeof AdminCatalogIndexRoute
   '/admin/customers/': typeof AdminCustomersIndexRoute
+  '/admin/expenses/': typeof AdminExpensesIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/api/admin/catalog/images': typeof ApiAdminCatalogImagesRoute
   '/api/admin/catalog/products': typeof ApiAdminCatalogProductsRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/catalog/$productId/request'
     | '/admin/catalog/'
     | '/admin/customers/'
+    | '/admin/expenses/'
     | '/admin/orders/'
     | '/api/admin/catalog/images'
     | '/api/admin/catalog/products'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/catalog/$productId/request'
     | '/admin/catalog'
     | '/admin/customers'
+    | '/admin/expenses'
     | '/admin/orders'
     | '/api/admin/catalog/images'
     | '/api/admin/catalog/products'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/catalog/$productId/request'
     | '/admin/catalog/'
     | '/admin/customers/'
+    | '/admin/expenses/'
     | '/admin/orders/'
     | '/api/admin/catalog/images'
     | '/api/admin/catalog/products'
@@ -298,6 +310,7 @@ export interface RootRouteChildren {
   ApiTestResetCatalogRoute: typeof ApiTestResetCatalogRoute
   AdminCatalogIndexRoute: typeof AdminCatalogIndexRoute
   AdminCustomersIndexRoute: typeof AdminCustomersIndexRoute
+  AdminExpensesIndexRoute: typeof AdminExpensesIndexRoute
   AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
   ApiAdminCatalogImagesRoute: typeof ApiAdminCatalogImagesRoute
   ApiAdminCatalogProductsRoute: typeof ApiAdminCatalogProductsRoute
@@ -380,6 +393,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/customers/$customerId'
       fullPath: '/admin/customers/$customerId'
       preLoaderRoute: typeof AdminCustomersCustomerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/expenses/': {
+      id: '/admin/expenses/'
+      path: '/admin/expenses'
+      fullPath: '/admin/expenses/'
+      preLoaderRoute: typeof AdminExpensesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/orders/': {
@@ -494,6 +514,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTestResetCatalogRoute: ApiTestResetCatalogRoute,
   AdminCatalogIndexRoute: AdminCatalogIndexRoute,
   AdminCustomersIndexRoute: AdminCustomersIndexRoute,
+  AdminExpensesIndexRoute: AdminExpensesIndexRoute,
   AdminOrdersIndexRoute: AdminOrdersIndexRoute,
   ApiAdminCatalogImagesRoute: ApiAdminCatalogImagesRoute,
   ApiAdminCatalogProductsRoute: ApiAdminCatalogProductsRoute,

@@ -115,9 +115,29 @@ export const payments = pgTable('payments', {
     .defaultNow(),
 })
 
+export const expenses = pgTable('expenses', {
+  id: serial('id').primaryKey(),
+  description: text('description').notNull(),
+  payer: text('payer').notNull(),
+  totalAmountThb: numeric('total_amount_thb', {
+    precision: 12,
+    scale: 2,
+  }).notNull(),
+  expenseDate: date('expense_date', { mode: 'string' }).notNull(),
+  quantity: integer('quantity'),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 export type Product = typeof products.$inferSelect
 export type ProductVariation = typeof productVariations.$inferSelect
 export type ProductImage = typeof productImages.$inferSelect
 export type Customer = typeof customers.$inferSelect
 export type Order = typeof orders.$inferSelect
 export type Payment = typeof payments.$inferSelect
+export type Expense = typeof expenses.$inferSelect
