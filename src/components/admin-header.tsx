@@ -15,6 +15,7 @@ import {
   DrawerTitle,
 } from '#/components/ui/drawer'
 import { useLocale } from '#/lib/i18n'
+import { logoutFn } from '#/server/auth'
 
 export function AdminHeader({ pendingCount }: { pendingCount: number }) {
   const { t } = useLocale()
@@ -22,7 +23,6 @@ export function AdminHeader({ pendingCount }: { pendingCount: number }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   async function logout() {
-    const { logoutFn } = await import('#/server/auth')
     await logoutFn()
     await router.navigate({ to: '/admin/login' })
   }

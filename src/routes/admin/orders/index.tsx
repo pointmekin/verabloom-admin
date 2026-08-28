@@ -22,6 +22,7 @@ import { useLocale } from '#/lib/i18n'
 import type { Locale, MessageKey } from '#/lib/i18n'
 import { listAdminOrdersPageFn } from '#/server/admin-order'
 import type { AdminOrderStatus } from '#/server/admin-order'
+import { getRequiredAdminFn } from '#/server/auth'
 
 const orderSearchSchema = z.object({
   search: z.string().optional().default(''),
@@ -37,10 +38,7 @@ const orderSearchSchema = z.object({
 })
 
 export const Route = createFileRoute('/admin/orders/')({
-  beforeLoad: () =>
-    import('#/server/auth').then(({ getRequiredAdminFn }) =>
-      getRequiredAdminFn(),
-    ),
+  beforeLoad: () => getRequiredAdminFn(),
   validateSearch: orderSearchSchema,
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => listAdminOrdersPageFn({ data: deps }),

@@ -28,14 +28,12 @@ import {
   reportingPeriodSchema,
 } from '#/server/admin-finance'
 import { getPendingOrderCountFn } from '#/server/admin-order'
+import { getRequiredAdminFn } from '#/server/auth'
 import type { FinanceReport } from '#/server/finance-report.server'
 import type { AdminExpensePayer } from '#/server/admin-expense'
 
 export const Route = createFileRoute('/admin/finance')({
-  beforeLoad: () =>
-    import('#/server/auth').then(({ getRequiredAdminFn }) =>
-      getRequiredAdminFn(),
-    ),
+  beforeLoad: () => getRequiredAdminFn(),
   loader: async () => {
     const period = defaultReportingPeriod()
     const [report, pendingCount] = await Promise.all([

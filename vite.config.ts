@@ -8,7 +8,6 @@ import { nitro } from 'nitro/vite'
 import { devtools } from '@tanstack/devtools-vite'
 
 const config = defineConfig({
-  resolve: { tsconfigPaths: true },
   plugins: [
     devtools({
       // Click an element in the devtools to open its source in the editor.
@@ -19,9 +18,9 @@ const config = defineConfig({
       // Default: strip devtools imports and JSX from the production build.
       removeDevtoolsOnBuild: true,
     }),
-    nitro({ preset: 'vercel' }),
     tailwindcss(),
     tanstackStart(),
+    nitro({ preset: 'vercel' }),
     viteReact(),
   ],
 })
