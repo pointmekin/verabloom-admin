@@ -55,9 +55,9 @@ export const orders = pgTable('orders', {
   id: serial('id').primaryKey(),
   requestReference: text('request_reference').notNull().unique(),
   status: text('status').notNull().default('pending_review'),
-  productId: integer('product_id')
-    .notNull()
-    .references(() => products.id, { onDelete: 'restrict' }),
+  productId: integer('product_id').references(() => products.id, {
+    onDelete: 'restrict',
+  }),
   productNameSnapshot: text('product_name_snapshot').notNull(),
   quantity: integer('quantity').notNull(),
   taskOwner: text('task_owner'),

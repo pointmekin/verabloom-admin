@@ -196,8 +196,8 @@ function AdminOrdersPage() {
                 <TableRow>
                   <TableHead>{t('requestReference')}</TableHead>
                   <TableHead>{t('taskOwner')}</TableHead>
-                  <TableHead>{t('customerName')}</TableHead>
-                  <TableHead>{t('selectedProduct')}</TableHead>
+                  <TableHead>{t('lineName')}</TableHead>
+                  <TableHead>{t('flowerTypeAndSize')}</TableHead>
                   <TableHead>{t('deliveryMethod')}</TableHead>
                   <TableHead>{t('requiredDate')}</TableHead>
                   <TableHead>{t('orderValue')}</TableHead>
@@ -220,11 +220,11 @@ function AdminOrdersPage() {
                     <TableCell data-label={t('taskOwner')}>
                       <OrderOwnerBadge owner={order.taskOwner} />
                     </TableCell>
-                    <TableCell data-label={t('customerName')}>
-                      <strong>{order.customerName}</strong>
-                      <small>{order.socialContact}</small>
+                    <TableCell data-label={t('lineName')}>
+                      <strong>{order.socialContact}</strong>
+                      {order.phone ? <small>{order.phone}</small> : null}
                     </TableCell>
-                    <TableCell data-label={t('selectedProduct')}>
+                    <TableCell data-label={t('flowerTypeAndSize')}>
                       {order.productNameSnapshot}
                     </TableCell>
                     <TableCell data-label={t('deliveryMethod')}>

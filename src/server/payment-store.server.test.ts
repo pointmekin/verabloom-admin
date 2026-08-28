@@ -1,14 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
-  clearCatalogMemoryForTests,
-  saveCatalogProduct,
-} from './catalog-store.server'
-import {
   clearOrderMemoryForTests,
   createDirectOrder,
   deleteOrder,
   getOrderById,
+  updateOrder,
 } from './order-store.server'
 import {
   clearPaymentMemoryForTests,
@@ -20,47 +17,31 @@ import {
 } from './payment-store.server'
 import type { PaymentMethod } from './payment-store.server'
 
-process.env.VERABLOOM_CATALOG_STORE = 'memory'
 process.env.VERABLOOM_ORDER_STORE = 'memory'
-process.env.VERABLOOM_CUSTOMER_STORE = 'memory'
 process.env.VERABLOOM_PAYMENT_STORE = 'memory'
 
 const baseInput = {
-  productId: 1,
-  quantity: 1,
-  taskOwner: 'chompooh' as const,
-  customerName: 'Mali',
-  socialChannel: 'line' as const,
+  productNameSnapshot: 'Spring bouquet',
   socialContact: '@mali',
   phone: '',
   requestDetails: '',
-  deliveryMethod: 'collection' as const,
+  deliveryMethod: 'messenger' as const,
   orderAddress: '',
   requiredDate: '2026-09-10',
-  status: 'confirmed' as const,
   orderValueThb: '1200',
 }
 
 async function fixtureConfirmedOrder() {
-  const product = await saveCatalogProduct({
-    name: 'Spring bouquet',
-    description: '',
-    startingPriceThb: '890',
-    visible: true,
-    images: [],
-  })
-  if (!product) throw new Error('fixture failed')
-  await createDirectOrder({ ...baseInput, productId: product.id })
-  const order = await getOrderById(1)
-  if (!order) throw new Error('fixture failed')
-  return order
+  const order = await createDirectOrder(baseInput)
+  const saved = await getOrderById(order.id)
+  if (!saved) throw new Error('fixture failed')
+  return saved
 }
 
 describe('payment records', () => {
   afterEach(() => {
     clearPaymentMemoryForTests()
     clearOrderMemoryForTests()
-    clearCatalogMemoryForTests()
   })
 
   it('adds multiple payments to an order with amount, date, method, and note', async () => {
@@ -148,8 +129,7 @@ describe('payment records', () => {
     await expect(deletePayment(created.id)).rejects.toThrow('Payment not found')
   })
 
-  it('keeps retained payments recorded when an order is cancelled', async () => {
-    const { updateOrder } = await import('./order-store.server')
+  it('keeps recorded payments when an order is edited', async () => {
     const order = await fixtureConfirmedOrder()
     await createPayment(order.id, {
       amountThb: '800',
@@ -158,9 +138,8 @@ describe('payment records', () => {
       note: '',
     })
     await updateOrder(order.id, {
-      ...order,
-      taskOwner: 'chompooh',
-      status: 'cancelled',
+      ...baseInput,
+      requestDetails: 'Updated details',
     })
     const payments = await listPaymentsForOrder(order.id)
     expect(payments.map((item) => item.amountThb)).toEqual(['800'])
@@ -182,8 +161,7 @@ describe('payment records', () => {
     const order = await fixtureConfirmedOrder()
     const other = await createDirectOrder({
       ...baseInput,
-      productId: order.productId,
-      customerName: 'Nok',
+      socialContact: '@nok',
     })
     await createPayment(order.id, {
       amountThb: '500',
@@ -208,7 +186,7 @@ describe('payment records', () => {
     expect(all.every((item) => typeof item.orderId === 'number')).toBe(true)
   })
 
-  it('stays in memory when only the catalog store is memory, matching orders', async () => {
+  it('stays in memory when the order store is memory', async () => {
     delete process.env.VERABLOOM_PAYMENT_STORE
     try {
       const order = await fixtureConfirmedOrder()

@@ -12,6 +12,7 @@
   --blush: #d99a99;
   --blush-light: #f8e4e8;
   --line: rgba(40, 21, 31, 0.14);
+  --card-border: oklch(0.91 0.03 350);
   --surface: rgba(255, 255, 255, 0.88);
   --surface-input: rgba(255, 255, 255, 0.76);
   --shadow: 0 24px 70px rgba(91, 26, 57, 0.13);
@@ -60,6 +61,7 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-border: var(--card-border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -424,7 +426,7 @@ a {
 .login-card {
   width: min(100%, 440px);
   padding: clamp(1.5rem, 5vw, 3rem);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 1.5rem;
   background: var(--surface);
   box-shadow: var(--shadow);
@@ -518,7 +520,7 @@ a {
   gap: 1.3rem;
   align-items: start;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 1.25rem;
   box-shadow: var(--shadow);
 }
@@ -711,7 +713,7 @@ a {
   height: 100%;
   overflow: hidden;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 1.15rem;
   box-shadow: 0 12px 35px rgba(91, 26, 57, 0.08);
   transition:
@@ -915,7 +917,7 @@ a {
   align-items: center;
   padding: 0.8rem;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 0.95rem;
 }
 .admin-product-list > li.is-hidden {
@@ -986,6 +988,76 @@ a {
 .editor-heading {
   margin-bottom: 2rem;
 }
+.order-status-card {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.35rem;
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+  background: var(--surface);
+  border: 2px solid var(--blush);
+  border-radius: 0.8rem;
+  box-shadow: 0 12px 35px rgba(91, 26, 57, 0.08);
+}
+.order-status-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.order-status-card-heading h2 {
+  margin: 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 500;
+}
+.order-status-kicker {
+  margin: 0 0 0.25rem;
+  color: var(--muted-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.order-status-badge {
+  padding: 0.5rem 0.85rem;
+  border-color: currentColor;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.order-status-badge[data-status='pending_review'] {
+  color: var(--leaf-dark);
+  background: var(--blush-light);
+}
+.order-status-badge[data-status='confirmed'] {
+  color: var(--success);
+  background: var(--success-soft);
+}
+.order-status-badge[data-status='work_in_progress'] {
+  color: var(--delivery-messenger);
+  background: var(--delivery-messenger-soft);
+}
+.order-status-badge[data-status='completed'] {
+  color: var(--success);
+  background: var(--success-soft);
+}
+.order-status-badge[data-status='cancelled'] {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.order-status-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+}
+.order-status-save {
+  min-height: 42px;
+}
+.order-status-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 .product-editor-form {
   display: grid;
   gap: 1.35rem;
@@ -994,7 +1066,7 @@ a {
   gap: 1.35rem;
   padding: clamp(1.1rem, 3vw, 1.6rem);
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 0.65rem;
   box-shadow: 0 12px 35px rgba(91, 26, 57, 0.06);
 }
@@ -1136,9 +1208,10 @@ a {
   justify-content: flex-end;
   gap: 0.6rem;
   margin-inline: 0;
-  padding: 0.8rem 0 max(0.8rem, env(safe-area-inset-bottom));
+  padding: 0.8rem max(0.8rem, env(safe-area-inset-bottom));
   background: rgba(255, 250, 251, 0.94);
-  border-top: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
   backdrop-filter: blur(12px);
 }
 .request-main,
@@ -1175,7 +1248,7 @@ a {
   gap: 1.35rem;
   padding: clamp(1.1rem, 3vw, 1.6rem);
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 0.65rem;
   box-shadow: 0 12px 35px rgba(91, 26, 57, 0.06);
 }
@@ -1293,7 +1366,7 @@ a {
   padding: clamp(1.5rem, 6vw, 3.5rem);
   text-align: center;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 1.5rem;
   box-shadow: var(--shadow);
 }
@@ -1443,7 +1516,7 @@ a {
   margin-top: 1.5rem;
   overflow-x: auto;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 1rem;
 }
 .orders-table {
@@ -1626,6 +1699,13 @@ a {
   .editor-columns {
     grid-template-columns: 1fr;
   }
+  .order-status-controls {
+    grid-template-columns: 1fr;
+  }
+  .order-status-save {
+    width: 100%;
+  }
+
   .editor-footer {
     justify-content: stretch;
   }
@@ -1679,7 +1759,7 @@ a {
     margin-top: 0.75rem;
     padding: 0.55rem 0.8rem;
     background: var(--surface);
-    border: 1px solid var(--line);
+    border: 1px solid var(--card-border);
     border-radius: 0.85rem;
   }
   .orders-table td {
@@ -1756,7 +1836,7 @@ a {
   gap: 0.25rem;
   padding: 0.7rem 0.85rem;
   background: var(--surface-input);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 0.75rem;
 }
 .payments-summary-label {
@@ -1785,7 +1865,7 @@ a {
   gap: 0.35rem;
   padding: 0.75rem 0.9rem;
   background: var(--surface-input);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: 0.75rem;
 }
 .payment-item-main {
@@ -1817,6 +1897,7 @@ a {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.75rem;
   margin-top: 2.5rem;
+  margin-bottom: 1rem;
 }
 .summary-card {
   gap: 0.35rem;

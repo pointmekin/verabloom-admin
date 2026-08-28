@@ -1,280 +1,132 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import {
-  clearCatalogMemoryForTests,
-  saveCatalogProduct,
-} from './catalog-store.server'
-import {
-  clearCustomerMemoryForTests,
-  createCustomer,
-  deleteCustomer,
-  listCustomers,
-} from './customer-store.server'
+import { directOrderSchema, orderUpdateSchema } from './admin-order'
 import {
   clearOrderMemoryForTests,
   createDirectOrder,
-  createOrderRequest,
   deleteOrder,
   getOrderById,
   listOrderRequests,
   listOrderRequestsPage,
   updateOrder,
+  updateOrderStatus,
 } from './order-store.server'
-import { directOrderSchema, orderUpdateSchema } from './admin-order'
 
-process.env.VERABLOOM_CATALOG_STORE = 'memory'
 process.env.VERABLOOM_ORDER_STORE = 'memory'
-process.env.VERABLOOM_CUSTOMER_STORE = 'memory'
-process.env.VERABLOOM_STORAGE = 'memory'
 
 const baseInput = {
-  productId: 1,
-  quantity: 1,
-  taskOwner: 'chompooh' as const,
-  customerName: 'Mali',
-  socialChannel: 'line' as const,
-  socialContact: '@mali',
+  productNameSnapshot: 'ช่อทิวลิป ไซส์ M',
+  socialContact: 'mali.line',
   phone: '',
-  requestDetails: 'Pink flowers',
-  deliveryMethod: 'collection' as const,
-  recipientName: '',
-  recipientPhone: '',
+  requestDetails: 'Pink wrapping',
+  deliveryMethod: 'messenger' as const,
   orderAddress: '',
   requiredDate: '2026-09-10',
-  honeypot: '',
+  orderValueThb: '1200.50',
 }
 
-async function fixture() {
-  const product = await saveCatalogProduct({
-    name: 'Spring bouquet',
-    description: '',
-    startingPriceThb: '890',
-    visible: true,
-    images: [],
-  })
-  if (!product) throw new Error('fixture failed')
-  return { product }
-}
-
-describe('customer and order management', () => {
+describe('direct order management', () => {
   afterEach(() => {
     clearOrderMemoryForTests()
-    clearCustomerMemoryForTests()
-    clearCatalogMemoryForTests()
   })
 
-  it('validates money and confirmed status at the server boundary', () => {
+  it('accepts optional address and phone but requires the core order fields', () => {
+    expect(directOrderSchema.safeParse(baseInput).success).toBe(true)
+    expect(orderUpdateSchema.safeParse(baseInput).success).toBe(true)
     expect(
-      directOrderSchema.safeParse({
-        ...baseInput,
-        status: 'confirmed',
-        orderValueThb: '',
-        customerId: null,
-      }).success,
-    ).toBe(false)
-    expect(
-      directOrderSchema.safeParse({
-        ...baseInput,
-        status: 'confirmed',
-        orderValueThb: '1200.50',
-        customerId: null,
-      }).success,
+      directOrderSchema.safeParse({ ...baseInput, orderAddress: undefined })
+        .success,
     ).toBe(true)
     expect(
-      directOrderSchema.safeParse({
-        ...baseInput,
-        status: 'cancelled',
-        orderValueThb: '',
-        customerId: null,
-      }).success,
+      directOrderSchema.safeParse({ ...baseInput, phone: undefined }).success,
+    ).toBe(true)
+    expect(
+      directOrderSchema.safeParse({ ...baseInput, productNameSnapshot: '' })
+        .success,
     ).toBe(false)
     expect(
-      orderUpdateSchema.safeParse({
+      directOrderSchema.safeParse({ ...baseInput, socialContact: '' }).success,
+    ).toBe(false)
+    expect(
+      directOrderSchema.safeParse({ ...baseInput, orderValueThb: '12.345' })
+        .success,
+    ).toBe(false)
+    expect(
+      directOrderSchema.safeParse({
         ...baseInput,
-        status: 'pending_review',
-        orderValueThb: '12.345',
-        customerId: null,
+        deliveryMethod: 'collection',
       }).success,
     ).toBe(false)
   })
 
-  it('requires a task owner, an order value in progress, and postal recipients', () => {
-    const { taskOwner: _owner, ...withoutOwner } = baseInput
-    expect(
-      directOrderSchema.safeParse({
-        ...withoutOwner,
-        status: 'pending_review',
-        orderValueThb: '',
-        customerId: null,
-      }).success,
-    ).toBe(false)
-    expect(
-      directOrderSchema.safeParse({
-        ...baseInput,
-        status: 'work_in_progress',
-        orderValueThb: '',
-        customerId: null,
-      }).success,
-    ).toBe(false)
-    expect(
-      directOrderSchema.safeParse({
-        ...baseInput,
-        status: 'work_in_progress',
-        orderValueThb: '1200',
-        customerId: null,
-      }).success,
-    ).toBe(true)
-    const postal = {
+  it('creates an order without a catalog product or saved customer', async () => {
+    const order = await createDirectOrder(baseInput)
+
+    expect(order.productId).toBeNull()
+    expect(order.productNameSnapshot).toBe('ช่อทิวลิป ไซส์ M')
+    expect(order.customerId).toBeNull()
+    expect(order.customerName).toBe('mali.line')
+    expect(order.socialChannel).toBe('line')
+    expect(order.socialContact).toBe('mali.line')
+    expect(order.phone).toBeNull()
+    expect(order.orderAddress).toBeNull()
+    expect(order.quantity).toBe(1)
+    expect(order.taskOwner).toBeNull()
+    expect(order.status).toBe('confirmed')
+    expect(order.orderValueThb).toBe('1200.50')
+  })
+
+  it('updates only fields from the simplified form', async () => {
+    const order = await createDirectOrder(baseInput)
+    const updated = await updateOrder(order.id, {
       ...baseInput,
-      deliveryMethod: 'postal' as const,
-      orderAddress: '12 Rose Road',
-      status: 'pending_review' as const,
-      orderValueThb: '',
-      customerId: null,
-    }
-    expect(directOrderSchema.safeParse(postal).success).toBe(false)
-    expect(
-      directOrderSchema.safeParse({
-        ...postal,
-        recipientName: 'Nok',
-        recipientPhone: '0812345678',
-      }).success,
-    ).toBe(true)
-    expect(
-      directOrderSchema.safeParse({
-        ...baseInput,
-        deliveryMethod: 'messenger',
-        orderAddress: 'Nok, 12 Rose Road, 0812345678',
-        status: 'pending_review',
-        orderValueThb: '',
-        customerId: null,
-      }).success,
-    ).toBe(true)
-  })
-
-  it('creates customers, links requests, and keeps the order address independent', async () => {
-    const { product } = await fixture()
-    const customer = await createCustomer({
-      name: 'Mali',
-      socialChannel: 'line',
-      socialContact: '@mali',
-      phone: '',
-      defaultAddress: 'Old address',
-    })
-    const request = await createOrderRequest({
-      ...baseInput,
-      productId: product.id,
+      productNameSnapshot: 'ช่อกุหลาบ ไซส์ L',
+      socialContact: 'new.line',
       deliveryMethod: 'postal',
-      recipientName: 'Mali',
-      recipientPhone: '0812345678',
-      orderAddress: customer.defaultAddress ?? '',
+      orderAddress: '12 Rose Road',
+      phone: '0812345678',
+      orderValueThb: '1500',
     })
-    expect(request.taskOwner).toBeNull()
-    const updated = await updateOrder(request.id, {
-      ...request,
-      taskOwner: 'meen',
-      customerId: customer.id,
-      orderAddress: 'Order address',
-      status: 'confirmed',
-      orderValueThb: '1200',
-    })
-    expect(updated.customerId).toBe(customer.id)
-    expect(updated.taskOwner).toBe('meen')
-    expect(updated.orderAddress).toBe('Order address')
-    const replacement = await saveCatalogProduct({
-      name: 'Summer bouquet',
-      description: '',
-      startingPriceThb: '1500',
-      visible: false,
-      images: [],
-    })
-    if (!replacement) throw new Error('fixture failed')
-    const changed = await updateOrder(request.id, {
-      ...updated,
-      taskOwner: 'meen',
-      productId: replacement.id,
-      quantity: 2,
-    })
-    expect(changed.productNameSnapshot).toBe('Summer bouquet')
-    expect(changed.quantity).toBe(2)
-    expect((await listCustomers())[0]?.name).toBe('Mali')
 
-    const changedCustomer = await createCustomer({
-      id: customer.id,
-      name: customer.name,
-      socialChannel: customer.socialChannel,
-      socialContact: customer.socialContact,
-      phone: customer.phone ?? '',
-      defaultAddress: 'New address',
-    })
-    expect(changedCustomer.defaultAddress).toBe('New address')
-    expect((await getOrderById(request.id))?.orderAddress).toBe('Order address')
+    expect(updated.productNameSnapshot).toBe('ช่อกุหลาบ ไซส์ L')
+    expect(updated.customerName).toBe('new.line')
+    expect(updated.socialContact).toBe('new.line')
+    expect(updated.deliveryMethod).toBe('postal')
+    expect(updated.orderAddress).toBe('12 Rose Road')
+    expect(updated.phone).toBe('0812345678')
+    expect(updated.orderValueThb).toBe('1500')
+    expect(updated.status).toBe('confirmed')
+    expect((await getOrderById(order.id))?.productId).toBeNull()
   })
 
-  it('searches and filters newest orders and protects customer history from deletion', async () => {
-    const { product } = await fixture()
-    const customer = await createCustomer({
-      name: 'Nok',
-      socialChannel: 'instagram',
-      socialContact: '@nok',
-      phone: '0812345678',
-      defaultAddress: 'Nok address',
-    })
-    const first = await createDirectOrder({
-      ...baseInput,
-      productId: product.id,
-      customerId: customer.id,
-      customerName: customer.name,
-      socialChannel: customer.socialChannel,
-      socialContact: customer.socialContact,
-      phone: customer.phone ?? '',
-      status: 'pending_review',
-      orderValueThb: '',
-    })
+  it('updates an order status without changing the form details', async () => {
+    const order = await createDirectOrder(baseInput)
+    const updated = await updateOrderStatus(order.id, 'work_in_progress')
+
+    expect(updated.status).toBe('work_in_progress')
+    expect(updated.productNameSnapshot).toBe(order.productNameSnapshot)
+    expect(updated.orderValueThb).toBe(order.orderValueThb)
+    expect((await getOrderById(order.id))?.status).toBe('work_in_progress')
+  })
+
+  it('searches direct orders and removes them', async () => {
+    const first = await createDirectOrder(baseInput)
     const second = await createDirectOrder({
       ...baseInput,
-      productId: product.id,
-      customerId: customer.id,
-      customerName: customer.name,
-      socialChannel: customer.socialChannel,
-      socialContact: customer.socialContact,
-      phone: customer.phone ?? '',
-      status: 'confirmed',
-      orderValueThb: '999',
+      socialContact: 'nok.line',
+      phone: '0899999999',
     })
-    const delivery = await createDirectOrder({
-      ...baseInput,
-      productId: product.id,
-      customerId: customer.id,
-      customerName: customer.name,
-      socialChannel: customer.socialChannel,
-      socialContact: customer.socialContact,
-      phone: customer.phone ?? '',
-      deliveryMethod: 'messenger',
-      orderAddress: '',
-      status: 'pending_review',
-      orderValueThb: '',
-    })
-    expect(delivery.orderAddress).toBe(customer.defaultAddress)
+
     expect(
-      (await listOrderRequests({ search: '0812345678' })).map((o) => o.id),
-    ).toEqual([delivery.id, second.id, first.id])
-    const page = await listOrderRequestsPage({ search: '0812345678' })
-    expect(page.orders.map((o) => o.id)).toEqual([
-      delivery.id,
-      second.id,
-      first.id,
-    ])
-    expect(page.pendingCount).toBe(2)
-    expect(
-      (await listOrderRequests({ status: 'confirmed' })).map((o) => o.id),
+      (await listOrderRequests({ search: '0899999999' })).map(
+        (order) => order.id,
+      ),
     ).toEqual([second.id])
-    await expect(deleteCustomer(customer.id)).rejects.toThrow(
-      'Customer has orders',
-    )
-    await deleteOrder(delivery.id)
-    await deleteOrder(second.id)
-    await deleteOrder(first.id)
-    await expect(deleteCustomer(customer.id)).resolves.toBe(true)
+    const page = await listOrderRequestsPage({ search: 'line' })
+    expect(page.orders.map((order) => order.id)).toEqual([second.id, first.id])
+    expect(page.pendingCount).toBe(0)
+
+    await expect(deleteOrder(first.id)).resolves.toBe(true)
+    await expect(deleteOrder(second.id)).resolves.toBe(true)
   })
 })

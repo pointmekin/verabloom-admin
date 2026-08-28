@@ -1,6 +1,18 @@
 # Verabloom
 
-Verabloom manages the shop's bouquet catalog, customer orders, payments, and material expenses.
+Verabloom manages custom flower orders, payments, and material expenses.
+
+## Current order-entry model
+
+The admin records each custom order directly. The application has no catalog or
+saved-customer workflow. Each order records a LINE name, flower type and size,
+request details, messenger or postal delivery, a required date, an optional
+delivery address, an optional phone number, and an exact Thai baht value.
+
+**Flower type and size**:
+The admin-authored plain-text description of the custom bouquet type and size.
+The order stores this value in the historical product snapshot field.
+_Avoid_: Product selection, catalog item
 
 ## Language
 

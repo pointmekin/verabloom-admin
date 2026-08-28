@@ -50,6 +50,13 @@
       "when": 1787930001446,
       "tag": "0006_task_owner_and_product_price",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787912490616,
+      "tag": "0007_heavy_colonel_america",
+      "breakpoints": true
     }
   ]
 }

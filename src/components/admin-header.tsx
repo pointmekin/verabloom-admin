@@ -56,13 +56,6 @@ export function AdminHeader({ pendingCount }: { pendingCount: number }) {
           <Link
             activeProps={{ className: 'is-active' }}
             className="admin-section-link"
-            to="/admin/customers"
-          >
-            {t('customers')}
-          </Link>
-          <Link
-            activeProps={{ className: 'is-active' }}
-            className="admin-section-link"
             to="/admin/expenses"
           >
             {t('expenses')}
@@ -73,13 +66,6 @@ export function AdminHeader({ pendingCount }: { pendingCount: number }) {
             to="/admin/finance"
           >
             {t('finance')}
-          </Link>
-          <Link
-            activeProps={{ className: 'is-active' }}
-            className="admin-section-link"
-            to="/admin/catalog"
-          >
-            {t('catalog')}
           </Link>
         </nav>
         <div className="admin-actions">
@@ -129,13 +115,6 @@ export function AdminHeader({ pendingCount }: { pendingCount: number }) {
             </Link>
             <Link
               activeProps={{ className: 'is-active' }}
-              to="/admin/customers"
-              onClick={() => setMobileOpen(false)}
-            >
-              {t('customers')}
-            </Link>
-            <Link
-              activeProps={{ className: 'is-active' }}
               to="/admin/expenses"
               onClick={() => setMobileOpen(false)}
             >
@@ -147,13 +126,6 @@ export function AdminHeader({ pendingCount }: { pendingCount: number }) {
               onClick={() => setMobileOpen(false)}
             >
               {t('finance')}
-            </Link>
-            <Link
-              activeProps={{ className: 'is-active' }}
-              to="/admin/catalog"
-              onClick={() => setMobileOpen(false)}
-            >
-              {t('catalog')}
             </Link>
           </nav>
           <DrawerFooter>

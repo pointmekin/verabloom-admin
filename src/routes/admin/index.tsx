@@ -106,9 +106,6 @@ function AdminHome() {
           <Button asChild className="compact-button" variant="outline">
             <Link to="/admin/expenses">{t('expenses')}</Link>
           </Button>
-          <Button asChild className="compact-button" variant="outline">
-            <Link to="/admin/catalog">{t('adminCatalog')}</Link>
-          </Button>
         </div>
 
         <div className="summary-cards">

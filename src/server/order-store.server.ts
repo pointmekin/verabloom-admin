@@ -7,7 +7,6 @@ import { orders, products } from '#/db/schema'
 import { isTeamMember } from '#/lib/team-members'
 import type { TeamMember } from '#/lib/team-members'
 import { getCatalogProduct } from './catalog-store.server'
-import { getCustomerById } from './customer-store.server'
 import type { OrderRequestInput } from './order'
 
 export type OrderStatus =
@@ -21,7 +20,7 @@ export type OrderRequest = {
   id: number
   requestReference: string
   status: OrderStatus
-  productId: number
+  productId: number | null
   productNameSnapshot: string
   quantity: number
   taskOwner: TeamMember | null
@@ -42,7 +41,7 @@ export type OrderRequest = {
   updatedAt: Date
 }
 
-export type OrderEditableInput = {
+type LegacyOrderEditableInput = {
   productId?: number
   quantity?: number
   taskOwner: TeamMember
@@ -62,10 +61,18 @@ export type OrderEditableInput = {
   internalNote?: string | null
 }
 
-export type DirectOrderInput = OrderEditableInput & {
-  productId: number
-  quantity: number
+export type OrderEditableInput = {
+  productNameSnapshot: string
+  socialContact: string
+  phone?: string | null
+  requestDetails: string
+  deliveryMethod: 'postal' | 'messenger'
+  orderAddress?: string | null
+  requiredDate: string
+  orderValueThb: string
 }
+
+export type DirectOrderInput = OrderEditableInput
 
 type MemoryState = {
   orders: Map<number, OrderRequest>
@@ -145,61 +152,31 @@ function normalizedValue(value?: string | null) {
   return value?.trim() || null
 }
 
+function assertOrderFormInput(input: OrderEditableInput) {
+  if (!input.productNameSnapshot.trim()) {
+    throw new Error('Flower type and size are required')
+  }
+  if (!input.socialContact.trim()) {
+    throw new Error('LINE name is required')
+  }
+  if (!['postal', 'messenger'].includes(input.deliveryMethod)) {
+    throw new Error('Choose messenger or postal delivery')
+  }
+  if (!/^\d+(?:\.\d{1,2})?$/.test(input.orderValueThb.trim())) {
+    throw new Error('Enter a valid Thai baht amount')
+  }
+}
+
 const statusesRequiringValue: OrderStatus[] = [
   'confirmed',
   'work_in_progress',
   'completed',
 ]
 
-function assertEditableOrder(input: OrderEditableInput) {
-  if (
-    input.quantity !== undefined &&
-    (!Number.isSafeInteger(input.quantity) || input.quantity < 1)
-  ) {
-    throw new Error('Quantity must be a positive whole number')
-  }
-  if (!isTeamMember(input.taskOwner)) {
-    throw new Error('Choose a task owner')
-  }
-  if (
-    (input.deliveryMethod === 'postal' ||
-      input.deliveryMethod === 'messenger') &&
-    !input.orderAddress?.trim()
-  ) {
-    throw new Error('Address is required for delivery')
-  }
-  if (
-    input.deliveryMethod === 'postal' &&
-    (!input.recipientName?.trim() || !input.recipientPhone?.trim())
-  ) {
-    throw new Error('Postal orders require recipient details')
-  }
-  if (
-    statusesRequiringValue.includes(input.status) &&
-    !input.orderValueThb?.trim()
-  ) {
+function assertStatusUpdate(status: OrderStatus, orderValueThb: string | null) {
+  if (statusesRequiringValue.includes(status) && !orderValueThb?.trim()) {
     throw new Error('Confirmed orders require an order value')
   }
-  if (
-    input.orderValueThb?.trim() &&
-    !/^\d+(?:\.\d{1,2})?$/.test(input.orderValueThb.trim())
-  ) {
-    throw new Error('Enter a valid Thai baht amount')
-  }
-}
-
-async function resolveDirectOrderInput(input: DirectOrderInput) {
-  if (input.customerId == null) return input
-  const customer = await getCustomerById(input.customerId)
-  if (!customer) throw new Error('Customer not found')
-  if (
-    input.deliveryMethod !== 'collection' &&
-    !input.orderAddress?.trim() &&
-    customer.defaultAddress
-  ) {
-    return { ...input, orderAddress: customer.defaultAddress }
-  }
-  return input
 }
 
 function nextMemoryId() {
@@ -215,7 +192,7 @@ async function catalogSnapshot(productId: number, visibleOnly: boolean) {
 }
 
 /** A public request has no task owner, so the owner stays nullable here. */
-type MemoryOrderInput = Omit<OrderEditableInput, 'taskOwner'> & {
+type MemoryOrderInput = Omit<LegacyOrderEditableInput, 'taskOwner'> & {
   taskOwner: TeamMember | null
 }
 
@@ -328,52 +305,62 @@ export async function createOrderRequest(
 }
 
 export async function createDirectOrder(input: DirectOrderInput) {
-  const resolvedInput = await resolveDirectOrderInput(input)
-  assertEditableOrder(resolvedInput)
+  assertOrderFormInput(input)
   if (!useDatabase()) {
-    const product = await catalogSnapshot(resolvedInput.productId, false)
-    const order = memoryOrderFromProduct(
-      nextMemoryId(),
-      product,
-      resolvedInput,
-      resolvedInput.quantity,
-      resolvedInput.status,
-    )
+    const id = nextMemoryId()
+    const now = new Date()
+    const order: OrderRequest = {
+      id,
+      requestReference: requestReference(id),
+      status: 'confirmed',
+      productId: null,
+      productNameSnapshot: input.productNameSnapshot.trim(),
+      quantity: 1,
+      taskOwner: null,
+      customerId: null,
+      customerName: input.socialContact.trim(),
+      socialChannel: 'line',
+      socialContact: input.socialContact.trim(),
+      phone: normalizedValue(input.phone),
+      requestDetails: input.requestDetails,
+      deliveryMethod: input.deliveryMethod,
+      recipientName: null,
+      recipientPhone: null,
+      orderAddress: normalizedValue(input.orderAddress),
+      requiredDate: input.requiredDate,
+      orderValueThb: input.orderValueThb.trim(),
+      internalNote: null,
+      createdAt: now,
+      updatedAt: now,
+    }
     memory.orders.set(order.id, order)
     return normalizeMemoryOrder(order)
   }
-  const db = getDatabase()
-  const productRows = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, resolvedInput.productId))
-  if (!productRows[0]) throw new Error('Product not found')
-  const product = productRows[0]
-  const [created] = await db
+  const [created] = await getDatabase()
     .insert(orders)
     .values({
       requestReference: `pending-${randomUUID()}`,
-      status: resolvedInput.status,
-      productId: product.id,
-      productNameSnapshot: product.name,
-      quantity: resolvedInput.quantity,
-      taskOwner: resolvedInput.taskOwner,
-      customerId: resolvedInput.customerId ?? null,
-      customerName: resolvedInput.customerName,
-      socialChannel: resolvedInput.socialChannel,
-      socialContact: resolvedInput.socialContact,
-      phone: normalizedValue(resolvedInput.phone),
-      requestDetails: resolvedInput.requestDetails,
-      deliveryMethod: resolvedInput.deliveryMethod,
-      recipientName: normalizedValue(resolvedInput.recipientName),
-      recipientPhone: normalizedValue(resolvedInput.recipientPhone),
-      orderAddress: normalizedValue(resolvedInput.orderAddress),
-      requiredDate: resolvedInput.requiredDate,
-      orderValueThb: normalizedValue(resolvedInput.orderValueThb),
-      internalNote: normalizedValue(resolvedInput.internalNote),
+      status: 'confirmed',
+      productId: null,
+      productNameSnapshot: input.productNameSnapshot.trim(),
+      quantity: 1,
+      taskOwner: null,
+      customerId: null,
+      customerName: input.socialContact.trim(),
+      socialChannel: 'line',
+      socialContact: input.socialContact.trim(),
+      phone: normalizedValue(input.phone),
+      requestDetails: input.requestDetails,
+      deliveryMethod: input.deliveryMethod,
+      recipientName: null,
+      recipientPhone: null,
+      orderAddress: normalizedValue(input.orderAddress),
+      requiredDate: input.requiredDate,
+      orderValueThb: input.orderValueThb.trim(),
+      internalNote: null,
     })
     .returning()
-  const [saved] = await db
+  const [saved] = await getDatabase()
     .update(orders)
     .set({ requestReference: requestReference(created.id) })
     .where(eq(orders.id, created.id))
@@ -463,81 +450,70 @@ export async function listOrderRequestsPage(options?: {
 }
 
 export async function updateOrder(id: number, input: OrderEditableInput) {
-  if (input.customerId != null && !(await getCustomerById(input.customerId))) {
-    throw new Error('Customer not found')
-  }
-  assertEditableOrder(input)
+  assertOrderFormInput(input)
   if (!useDatabase()) {
     const existing = memory.orders.get(id)
     if (!existing) throw new Error('Order not found')
-    const productId = input.productId ?? existing.productId
-    const snapshot =
-      productId !== existing.productId
-        ? await catalogSnapshot(productId, false)
-        : null
     const updated: OrderRequest = {
       ...existing,
-      productId,
-      productNameSnapshot: snapshot?.name ?? existing.productNameSnapshot,
-      quantity: input.quantity ?? existing.quantity,
-      taskOwner: input.taskOwner,
-      customerId: input.customerId ?? null,
-      customerName: input.customerName,
-      socialChannel: input.socialChannel,
-      socialContact: input.socialContact,
+      productNameSnapshot: input.productNameSnapshot.trim(),
+      customerName: input.socialContact.trim(),
+      socialChannel: 'line',
+      socialContact: input.socialContact.trim(),
       phone: normalizedValue(input.phone),
       requestDetails: input.requestDetails,
       deliveryMethod: input.deliveryMethod,
-      recipientName: normalizedValue(input.recipientName),
-      recipientPhone: normalizedValue(input.recipientPhone),
       orderAddress: normalizedValue(input.orderAddress),
       requiredDate: input.requiredDate,
-      status: input.status,
-      orderValueThb: normalizedValue(input.orderValueThb),
-      internalNote: normalizedValue(input.internalNote),
+      orderValueThb: input.orderValueThb.trim(),
       updatedAt: new Date(),
     }
     memory.orders.set(id, updated)
     return normalizeMemoryOrder(updated)
   }
+  const updatedRows = await getDatabase()
+    .update(orders)
+    .set({
+      productNameSnapshot: input.productNameSnapshot.trim(),
+      customerName: input.socialContact.trim(),
+      socialChannel: 'line',
+      socialContact: input.socialContact.trim(),
+      phone: normalizedValue(input.phone),
+      requestDetails: input.requestDetails,
+      deliveryMethod: input.deliveryMethod,
+      orderAddress: normalizedValue(input.orderAddress),
+      requiredDate: input.requiredDate,
+      orderValueThb: input.orderValueThb.trim(),
+      updatedAt: new Date(),
+    })
+    .where(eq(orders.id, id))
+    .returning()
+  if (updatedRows.length === 0) throw new Error('Order not found')
+  return mapDatabaseOrder(updatedRows[0])
+}
+
+export async function updateOrderStatus(id: number, status: OrderStatus) {
+  if (!useDatabase()) {
+    const existing = memory.orders.get(id)
+    if (!existing) throw new Error('Order not found')
+    assertStatusUpdate(status, existing.orderValueThb)
+    const updated: OrderRequest = {
+      ...existing,
+      status,
+      updatedAt: new Date(),
+    }
+    memory.orders.set(id, updated)
+    return normalizeMemoryOrder(updated)
+  }
+
   const db = getDatabase()
   return db.transaction(async (tx) => {
     const existingRows = await tx.select().from(orders).where(eq(orders.id, id))
     if (existingRows.length === 0) throw new Error('Order not found')
-    const existing = existingRows[0]
-    const productId = input.productId ?? existing.productId
-    let productName: string | null = null
-    if (productId !== existing.productId) {
-      const productRows = await tx
-        .select()
-        .from(products)
-        .where(eq(products.id, productId))
-      if (productRows.length === 0) throw new Error('Product not found')
-      productName = productRows[0].name
-    }
+    assertStatusUpdate(status, existingRows[0].orderValueThb)
     const updatedRows = await tx
       .update(orders)
-      .set({
-        productId,
-        productNameSnapshot: productName ?? existing.productNameSnapshot,
-        quantity: input.quantity ?? existing.quantity,
-        taskOwner: input.taskOwner,
-        customerId: input.customerId ?? null,
-        customerName: input.customerName,
-        socialChannel: input.socialChannel,
-        socialContact: input.socialContact,
-        phone: normalizedValue(input.phone),
-        requestDetails: input.requestDetails,
-        deliveryMethod: input.deliveryMethod,
-        recipientName: normalizedValue(input.recipientName),
-        recipientPhone: normalizedValue(input.recipientPhone),
-        orderAddress: normalizedValue(input.orderAddress),
-        requiredDate: input.requiredDate,
-        status: input.status,
-        orderValueThb: normalizedValue(input.orderValueThb),
-        internalNote: normalizedValue(input.internalNote),
-        updatedAt: new Date(),
-      })
+      .set({ status, updatedAt: new Date() })
       .where(eq(orders.id, id))
       .returning()
     if (updatedRows.length === 0) throw new Error('Order not found')
@@ -548,9 +524,7 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
 export async function deleteOrder(id: number) {
   if (!useDatabase()) {
     if (!memory.orders.delete(id)) throw new Error('Order not found')
-    const { deletePaymentsForOrder } = await import(
-      './payment-store.server'
-    )
+    const { deletePaymentsForOrder } = await import('./payment-store.server')
     await deletePaymentsForOrder(id)
     return true as const
   }

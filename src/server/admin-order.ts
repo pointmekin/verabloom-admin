@@ -1,14 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { TEAM_MEMBERS } from '#/lib/team-members'
 import type { OrderStatus } from './order-store.server'
 
-const socialChannelSchema = z.enum(['line', 'instagram', 'tiktok'])
-const deliveryMethodSchema = z.enum(['postal', 'messenger', 'collection'])
-const taskOwnerSchema = z.enum(TEAM_MEMBERS, {
-  message: 'Choose a task owner',
-})
+const deliveryMethodSchema = z.enum(['postal', 'messenger'])
 const statusSchema = z.enum([
   'pending_review',
   'confirmed',
@@ -16,6 +11,10 @@ const statusSchema = z.enum([
   'completed',
   'cancelled',
 ])
+const orderStatusUpdateSchema = z.object({
+  status: statusSchema,
+})
+
 const dateSchema = z
   .string()
   .trim()
@@ -35,109 +34,23 @@ const moneySchema = z
   .trim()
   .regex(/^\d+(?:\.\d{1,2})?$/, 'Enter a valid Thai baht amount')
 
-const nullableIdSchema = z.preprocess(
-  (value) => (value === '' || value === undefined ? null : value),
-  z.coerce.number().int().positive().nullable(),
-)
-
-const editableOrderShape = z.object({
-  taskOwner: taskOwnerSchema,
-  customerId: nullableIdSchema.default(null),
-  customerName: z.string().trim().min(1).max(200),
-  socialChannel: socialChannelSchema,
+const orderFormSchema = z.object({
+  productNameSnapshot: z.string().trim().min(1).max(200),
   socialContact: z.string().trim().min(1).max(320),
   phone: z.string().trim().max(60).default(''),
   requestDetails: z.string().trim().max(5000).default(''),
   deliveryMethod: deliveryMethodSchema,
-  recipientName: z.string().trim().max(200).default(''),
-  recipientPhone: z.string().trim().max(60).default(''),
   orderAddress: z.string().trim().max(1000).default(''),
   requiredDate: dateSchema,
-  status: statusSchema,
-  orderValueThb: z.string().trim().default(''),
-  internalNote: z.string().trim().max(5000).default(''),
+  orderValueThb: moneySchema,
 })
 
-const statusesRequiringValue = ['confirmed', 'work_in_progress', 'completed']
-
-function withOrderRules<T extends z.ZodTypeAny>(schema: T) {
-  return schema.superRefine((value, context) => {
-    const order = value as {
-      deliveryMethod: string
-      recipientName: string
-      recipientPhone: string
-      orderAddress: string
-      status: string
-      orderValueThb: string
-    }
-    if (
-      (order.deliveryMethod === 'postal' ||
-        order.deliveryMethod === 'messenger') &&
-      !order.orderAddress
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['orderAddress'],
-        message: 'Address is required for delivery',
-      })
-    }
-    if (order.deliveryMethod === 'postal') {
-      if (!order.recipientName) {
-        context.addIssue({
-          code: 'custom',
-          path: ['recipientName'],
-          message: 'Postal orders require recipient details',
-        })
-      }
-      if (!order.recipientPhone) {
-        context.addIssue({
-          code: 'custom',
-          path: ['recipientPhone'],
-          message: 'Postal orders require recipient details',
-        })
-      }
-    }
-    if (statusesRequiringValue.includes(order.status) && !order.orderValueThb) {
-      context.addIssue({
-        code: 'custom',
-        path: ['orderValueThb'],
-        message: 'Confirmed orders require an order value',
-      })
-    }
-    if (
-      order.orderValueThb &&
-      !moneySchema.safeParse(order.orderValueThb).success
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['orderValueThb'],
-        message: 'Enter a valid Thai baht amount',
-      })
-    }
-  })
-}
-
-const editableOrderWithProductShape = editableOrderShape.extend({
-  productId: z.coerce.number().int().positive(),
-  quantity: z.coerce.number().int().positive(),
-})
-
-export const orderUpdateSchema = withOrderRules(editableOrderWithProductShape)
-
-export const directOrderSchema = withOrderRules(
-  editableOrderWithProductShape,
-).refine(
-  (value) =>
-    value.status === 'pending_review' ||
-    value.status === 'confirmed' ||
-    value.status === 'work_in_progress',
-  {
-    path: ['status'],
-    message: 'Direct orders must start pending or confirmed',
-  },
-)
+export const orderUpdateSchema = orderFormSchema
+export const directOrderSchema = orderFormSchema
 
 const orderIdSchema = z.object({ id: z.coerce.number().int().positive() })
+const orderStatusUpdateInputSchema = orderIdSchema.and(orderStatusUpdateSchema)
+
 const orderListSchema = z.object({
   search: z.string().optional(),
   status: statusSchema.optional(),
@@ -178,6 +91,14 @@ export const saveAdminOrderFn = createServerFn({ method: 'POST' })
     await assertAdmin()
     const { updateOrder } = await import('./order-store.server')
     return updateOrder(data.id, data)
+  })
+
+export const updateAdminOrderStatusFn = createServerFn({ method: 'POST' })
+  .validator(orderStatusUpdateInputSchema)
+  .handler(async ({ data }) => {
+    await assertAdmin()
+    const { updateOrderStatus } = await import('./order-store.server')
+    return updateOrderStatus(data.id, data.status)
   })
 
 export const createAdminOrderFn = createServerFn({ method: 'POST' })

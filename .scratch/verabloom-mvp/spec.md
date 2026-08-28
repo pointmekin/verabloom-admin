@@ -12,6 +12,17 @@ Build a Thai-first, mobile-first web application with a public bouquet catalog a
 
 The application deliberately stays small. An order contains one product variation and a quantity. The shop agrees the final order value outside the system and records it when confirming the order. Customer payments remain separate records so deposits, later installments, received income, and outstanding amounts remain visible.
 
+## Workflow revision: 2026-08-28
+
+This revision replaces all conflicting catalog, public request, and saved-customer requirements below.
+
+- The application has no catalog page or catalog management flow.
+- The application has no customer creation or saved-customer flow.
+- An admin creates each custom order in one form.
+- The form contains only a LINE name, flower type and size, details, messenger or postal delivery, required date, optional delivery address, optional phone, and exact Thai baht price.
+- A direct order does not require a product or customer record.
+- The existing payment, expense, dashboard, and finance behavior stays unchanged.
+
 ## User Stories
 
 1. As a customer, I want to browse visible bouquet products on my phone, so that I can see what Verabloom offers.
