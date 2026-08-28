@@ -206,10 +206,10 @@ function AdminOrdersPage() {
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow key={order.id}>
+                  <TableRow className="order-row" key={order.id}>
                     <TableCell data-label={t('requestReference')}>
                       <Link
-                        className="text-link"
+                        className="text-link order-row-link"
                         to="/admin/orders/$orderId"
                         params={{ orderId: String(order.id) }}
                         aria-label={`${t('openOrder')} ${order.requestReference}`}

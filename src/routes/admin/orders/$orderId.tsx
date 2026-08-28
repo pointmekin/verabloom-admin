@@ -563,18 +563,17 @@ function AdminOrderEditor() {
                   alt={t('orderReferenceImage')}
                 />
               </div>
+            ) : imageFile ? (
+              <img
+                className="pending-image"
+                src={URL.createObjectURL(imageFile)}
+                alt={t('selectedImage')}
+              />
             ) : null}
             {imageFile ? (
-              <div>
-                <img
-                  className="pending-image"
-                  src={URL.createObjectURL(imageFile)}
-                  alt={t('selectedImage')}
-                />
-                <p className="pending-files">
-                  {t('selectedImage')}: {imageFile.name}
-                </p>
-              </div>
+              <p className="pending-files">
+                {t('selectedImage')}: {imageFile.name}
+              </p>
             ) : null}
           </Card>
           <div className="editor-footer">

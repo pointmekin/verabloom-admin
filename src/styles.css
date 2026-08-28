@@ -1538,6 +1538,15 @@ a {
   border-collapse: collapse;
   font-size: 0.82rem;
 }
+.orders-list-table .order-row {
+  position: relative;
+}
+.orders-list-table .order-row-link::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: '';
+}
 .orders-table th,
 .orders-table td {
   padding: 0.95rem 1rem;
