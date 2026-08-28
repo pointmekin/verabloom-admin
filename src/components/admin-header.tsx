@@ -3,7 +3,6 @@ import { LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { LanguageSwitcher } from '#/components/language-switcher'
-import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import {
   Drawer,
@@ -18,7 +17,7 @@ import { forgetAdminCheck } from '#/lib/admin-guard'
 import { useLocale } from '#/lib/i18n'
 import { logoutFn } from '#/server/auth'
 
-export function AdminHeader({ pendingCount }: { pendingCount: number }) {
+export function AdminHeader() {
   const { t } = useLocale()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -48,10 +47,7 @@ export function AdminHeader({ pendingCount }: { pendingCount: number }) {
             className="admin-section-link"
             to="/admin/orders"
           >
-            {t('orders')}{' '}
-            <Badge variant={pendingCount > 0 ? 'destructive' : 'secondary'}>
-              {pendingCount}
-            </Badge>
+            {t('orders')}
           </Link>
           <Link
             activeProps={{ className: 'is-active' }}
@@ -108,10 +104,7 @@ export function AdminHeader({ pendingCount }: { pendingCount: number }) {
               to="/admin/orders"
               onClick={() => setMobileOpen(false)}
             >
-              {t('orders')}{' '}
-              <Badge variant={pendingCount > 0 ? 'destructive' : 'secondary'}>
-                {pendingCount}
-              </Badge>
+              {t('orders')}
             </Link>
             <Link
               activeProps={{ className: 'is-active' }}

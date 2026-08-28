@@ -12,6 +12,7 @@ import {
   outstandingTotalThb,
   receivedIncomeThb,
   recordedExpensesThb,
+  payoutRecipientTotals,
   teamMemberTotals,
 } from './finance'
 import type { OrderWithPaymentsLike } from './finance'
@@ -300,35 +301,30 @@ describe('monthlyFinanceSeries', () => {
   })
 })
 
-describe('teamMemberTotals', () => {
-  it('attributes income to the order owner and expenses to the payer', () => {
-    const totals = teamMemberTotals(
-      [
-        { amountThb: '500', taskOwner: 'chompooh' },
-        { amountThb: '250.50', taskOwner: 'chompooh' },
-        { amountThb: '100', taskOwner: 'kan' },
-      ],
-      [
-        { totalAmountThb: '60', payer: 'meen' },
-        { totalAmountThb: '40.25', payer: 'meen' },
-      ],
-    )
+describe('payoutRecipientTotals', () => {
+  it('totals payouts by recipient', () => {
+    const totals = payoutRecipientTotals([
+      { amountThb: '250', recipient: 'kan' },
+      { amountThb: '100.50', recipient: 'chompooh' },
+      { amountThb: '0.50', recipient: 'chompooh' },
+    ])
     expect(totals).toEqual([
-      { member: 'chompooh', earnedThb: '750.50', paidThb: '0.00' },
-      { member: 'meen', earnedThb: '0.00', paidThb: '100.25' },
-      { member: 'kan', earnedThb: '100.00', paidThb: '0.00' },
+      { recipient: 'chompooh', payoutsThb: '101.00' },
+      { recipient: 'kan', payoutsThb: '250.00' },
     ])
   })
+})
 
-  it('adds an unassigned row only when an unowned order has income', () => {
-    const totals = teamMemberTotals(
-      [{ amountThb: '80', taskOwner: null }],
-      [],
-    )
-    expect(totals.at(-1)).toEqual({
-      member: 'unassigned',
-      earnedThb: '80.00',
-      paidThb: '0.00',
-    })
+describe('teamMemberTotals', () => {
+  it('totals expenses by payer', () => {
+    const totals = teamMemberTotals([
+      { totalAmountThb: '60', payer: 'meen' },
+      { totalAmountThb: '40.25', payer: 'meen' },
+    ])
+    expect(totals).toEqual([
+      { member: 'chompooh', paidThb: '0.00' },
+      { member: 'meen', paidThb: '100.25' },
+      { member: 'kan', paidThb: '0.00' },
+    ])
   })
 })

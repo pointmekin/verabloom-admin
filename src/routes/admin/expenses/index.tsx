@@ -38,18 +38,14 @@ import {
   updateAdminExpenseFn,
 } from '#/server/admin-expense'
 import type { AdminExpensePayer } from '#/server/admin-expense'
-import { getPendingOrderCountFn } from '#/server/admin-order'
 import type { ExpenseRecord } from '#/server/expense-store.server'
 import { requireAdmin } from '#/lib/admin-guard'
 
 export const Route = createFileRoute('/admin/expenses/')({
   beforeLoad: () => requireAdmin(),
   loader: async () => {
-    const [expenses, pendingCount] = await Promise.all([
-      listAdminExpensesFn(),
-      getPendingOrderCountFn(),
-    ])
-    return { expenses, pendingCount }
+    const expenses = await listAdminExpensesFn()
+    return { expenses }
   },
   component: AdminExpensesPage,
 })
@@ -99,7 +95,7 @@ function AdminExpensesPage() {
   const { t } = useLocale()
   const { toast } = useToast()
   const router = useRouter()
-  const { expenses, pendingCount } = Route.useLoaderData()
+  const { expenses } = Route.useLoaderData()
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -211,7 +207,7 @@ function AdminExpensesPage() {
 
   return (
     <div className="admin-shell">
-      <AdminHeader pendingCount={pendingCount} />
+      <AdminHeader />
       <main className="admin-main">
         <div className="admin-page-heading">
           <div>

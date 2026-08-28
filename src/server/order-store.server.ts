@@ -558,18 +558,19 @@ export async function updateOrderStatus(id: number, status: OrderStatus) {
   }
 
   const db = getDatabase()
-  return db.transaction(async (tx) => {
-    const existingRows = await tx.select().from(orders).where(eq(orders.id, id))
-    if (existingRows.length === 0) throw new Error('Order not found')
-    assertStatusUpdate(status, existingRows[0].orderValueThb)
-    const updatedRows = await tx
-      .update(orders)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(orders.id, id))
-      .returning()
-    if (updatedRows.length === 0) throw new Error('Order not found')
-    return mapDatabaseOrder(updatedRows[0])
-  })
+  const existingRows = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, id))
+  if (existingRows.length === 0) throw new Error('Order not found')
+  assertStatusUpdate(status, existingRows[0].orderValueThb)
+  const updatedRows = await db
+    .update(orders)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(orders.id, id))
+    .returning()
+  if (updatedRows.length === 0) throw new Error('Order not found')
+  return mapDatabaseOrder(updatedRows[0])
 }
 
 export async function deleteOrder(id: number) {

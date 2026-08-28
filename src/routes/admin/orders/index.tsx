@@ -10,14 +10,7 @@ import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Select, SelectItem } from '#/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
+import { Card } from '#/components/ui/card'
 import { useLocale } from '#/lib/i18n'
 import type { Locale, MessageKey } from '#/lib/i18n'
 import { listAdminOrdersPageFn } from '#/server/admin-order'
@@ -73,7 +66,22 @@ function AdminOrdersPage() {
   const { orders, pendingCount } = Route.useLoaderData()
   const search = Route.useSearch()
   const [query, setQuery] = useState(search.search)
+  const [expandedOrderIds, setExpandedOrderIds] = useState<Set<number>>(
+    () => new Set(),
+  )
   const hasActiveFilters = Boolean(search.search || search.status)
+
+  function toggleOrderDetails(orderId: number) {
+    setExpandedOrderIds((current) => {
+      const next = new Set(current)
+      if (next.has(orderId)) {
+        next.delete(orderId)
+      } else {
+        next.add(orderId)
+      }
+      return next
+    })
+  }
 
   useEffect(() => {
     setQuery(search.search)
@@ -104,7 +112,7 @@ function AdminOrdersPage() {
 
   return (
     <div className="admin-shell">
-      <AdminHeader pendingCount={pendingCount} />
+      <AdminHeader />
       <main className="admin-main orders-admin-main">
         <div className="admin-page-heading">
           <div>
@@ -190,68 +198,120 @@ function AdminOrdersPage() {
             ) : null}
           </div>
         ) : (
-          <div className="orders-table-wrap">
-            <Table className="orders-table orders-list-table">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('requestReference')}</TableHead>
-                  <TableHead>{t('taskOwner')}</TableHead>
-                  <TableHead>{t('lineName')}</TableHead>
-                  <TableHead>{t('flowerTypeAndSize')}</TableHead>
-                  <TableHead>{t('deliveryMethod')}</TableHead>
-                  <TableHead>{t('requiredDate')}</TableHead>
-                  <TableHead>{t('orderValue')}</TableHead>
-                  <TableHead>{t('filterStatus')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow className="order-row" key={order.id}>
-                    <TableCell data-label={t('requestReference')}>
-                      <Link
-                        className="text-link order-row-link"
-                        to="/admin/orders/$orderId"
-                        params={{ orderId: String(order.id) }}
-                        aria-label={`${t('openOrder')} ${order.requestReference}`}
-                      >
-                        {order.requestReference}
-                      </Link>
-                    </TableCell>
-                    <TableCell data-label={t('taskOwner')}>
+          <div className="orders-list">
+            {orders.map((order) => {
+              const isExpanded = expandedOrderIds.has(order.id)
+              const detailsId = `order-details-${order.id}`
+
+              return (
+                <Card className="order-card" key={order.id}>
+                  <div className="order-card-header">
+                    <Link
+                      className="order-card-link"
+                      to="/admin/orders/$orderId"
+                      params={{ orderId: String(order.id) }}
+                      aria-label={`${t('openOrder')} ${order.id}`}
+                    >
+                      <span className="order-card-reference">#{order.id}</span>
+                      <span className="order-card-contact">
+                        <span className="order-card-label">
+                          {t('lineName')}
+                        </span>
+                        <strong>{order.socialContact}</strong>
+                        {order.phone ? <small>{order.phone}</small> : null}
+                      </span>
+                    </Link>
+                    <Badge
+                      className="order-card-status"
+                      variant={
+                        order.status === 'cancelled'
+                          ? 'destructive'
+                          : 'secondary'
+                      }
+                    >
+                      {statusLabel(order.status, t)}
+                    </Badge>
+                    <div className="order-card-summary">
+                      <div>
+                        <span className="order-card-label">
+                          {t('requiredDate')}
+                        </span>
+                        <strong>
+                          {formatRequiredDate(order.requiredDate, locale)}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="order-card-label">
+                          {t('orderValue')}
+                        </span>
+                        <strong>
+                          {formatOrderValue(order.orderValueThb) ??
+                            t('valuePending')}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                  <dl className="order-card-owner-field">
+                    <dt className="order-card-label">{t('taskOwner')}</dt>
+                    <dd
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: '0.5rem',
+                      }}
+                    >
                       <OrderOwnerBadge owner={order.taskOwner} />
-                    </TableCell>
-                    <TableCell data-label={t('lineName')}>
-                      <strong>{order.socialContact}</strong>
-                      {order.phone ? <small>{order.phone}</small> : null}
-                    </TableCell>
-                    <TableCell data-label={t('flowerTypeAndSize')}>
-                      {order.productNameSnapshot}
-                    </TableCell>
-                    <TableCell data-label={t('deliveryMethod')}>
-                      <DeliveryBadge method={order.deliveryMethod} />
-                    </TableCell>
-                    <TableCell data-label={t('requiredDate')}>
-                      {formatRequiredDate(order.requiredDate, locale)}
-                    </TableCell>
-                    <TableCell data-label={t('orderValue')}>
-                      {formatOrderValue(order.orderValueThb) ??
-                        t('valuePending')}
-                    </TableCell>
-                    <TableCell data-label={t('filterStatus')}>
-                      <Badge
-                        variant={
-                          order.status === 'cancelled'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
+                      <Button
+                        aria-controls={detailsId}
+                        aria-expanded={isExpanded}
+                        className="order-card-more"
+                        onClick={() => toggleOrderDetails(order.id)}
+                        type="button"
+                        variant="ghost"
                       >
-                        {statusLabel(order.status, t)}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                        {isExpanded ? t('viewLess') : t('viewMore')}
+                      </Button>
+                    </dd>
+                  </dl>
+                  {isExpanded ? (
+                    <dl className="order-card-fields" id={detailsId}>
+                      <div className="order-card-field order-card-product">
+                        <dt className="order-card-label">
+                          {t('flowerTypeAndSize')}
+                        </dt>
+                        <dd className="order-card-value">
+                          {order.productNameSnapshot}
+                        </dd>
+                      </div>
+                      <div className="order-card-field order-card-request">
+                        <dt className="order-card-label">
+                          {t('requestDetails')}
+                        </dt>
+                        <dd className="order-card-copy">
+                          {order.requestDetails || '—'}
+                        </dd>
+                      </div>
+                      <div className="order-card-field order-card-address">
+                        <dt className="order-card-label">
+                          {t('optionalOrderAddress')}
+                        </dt>
+                        <dd className="order-card-copy">
+                          {order.orderAddress || '—'}
+                        </dd>
+                      </div>
+                      <div className="order-card-field order-card-delivery">
+                        <dt className="order-card-label">
+                          {t('deliveryMethod')}
+                        </dt>
+                        <dd>
+                          <DeliveryBadge method={order.deliveryMethod} />
+                        </dd>
+                      </div>
+                    </dl>
+                  ) : null}
+                </Card>
+              )
+            })}
           </div>
         )}
       </main>

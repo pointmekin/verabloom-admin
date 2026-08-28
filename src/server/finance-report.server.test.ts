@@ -7,6 +7,8 @@ import {
 import type { FinancePaymentRow } from './finance-report.server'
 import type { ExpenseRecord } from './expense-store.server'
 import type { PaymentRecord } from './payment-store.server'
+import type { PayoutRecord } from './payout-store.server'
+
 
 process.env.VERABLOOM_CATALOG_STORE = 'memory'
 process.env.VERABLOOM_ORDER_STORE = 'memory'
@@ -44,6 +46,19 @@ function expenseRecord(
     note: null,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
+    ...overrides,
+  }
+}
+
+function payoutRecord(
+  overrides: Partial<PayoutRecord> &
+    Pick<PayoutRecord, 'amountThb' | 'payoutDate'>,
+): PayoutRecord {
+  return {
+    id: 1,
+    recipient: 'kan',
+    note: null,
+    createdAt: new Date('2026-01-01T00:00:00Z'),
     ...overrides,
   }
 }
@@ -208,13 +223,20 @@ describe('buildFinanceReport', () => {
       end: '2026-08-31',
       receivedThb: '0.00',
       expensesThb: '0.00',
+      payoutsThb: '0.00',
       netCashThb: '0.00',
+      centralAccountBalanceThb: '0.00',
       payments: [],
       expenses: [],
+      payouts: [],
+      payoutRecipients: [
+        { recipient: 'chompooh', payoutsThb: '0.00' },
+        { recipient: 'kan', payoutsThb: '0.00' },
+      ],
       teamMembers: [
-        { member: 'chompooh', earnedThb: '0.00', paidThb: '0.00' },
-        { member: 'meen', earnedThb: '0.00', paidThb: '0.00' },
-        { member: 'kan', earnedThb: '0.00', paidThb: '0.00' },
+        { member: 'chompooh', paidThb: '0.00' },
+        { member: 'meen', paidThb: '0.00' },
+        { member: 'kan', paidThb: '0.00' },
       ],
     })
   })
@@ -244,5 +266,86 @@ describe('buildFinanceReport', () => {
     expect(report.receivedThb).toBe('420.50')
     expect(report.expensesThb).toBe('40.00')
     expect(report.netCashThb).toBe('380.50')
+  })
+
+  it('totals what each team member paid across every recorded expense', () => {
+    const report = buildFinanceReport({
+      payments: [],
+      expenses: [
+        expenseRecord({
+          totalAmountThb: '838.84',
+          expenseDate: '2026-07-10',
+          payer: 'meen',
+        }),
+        expenseRecord({
+          totalAmountThb: '55',
+          expenseDate: '2026-08-28',
+          payer: 'chompooh',
+        }),
+        expenseRecord({
+          totalAmountThb: '290',
+          expenseDate: '2026-07-04',
+          payer: 'chompooh',
+        }),
+      ],
+      start: '2026-08-01',
+      end: '2026-08-31',
+    })
+
+    expect(report.expensesThb).toBe('55.00')
+    expect(report.teamMembers).toEqual([
+      { member: 'chompooh', paidThb: '345.00' },
+      { member: 'meen', paidThb: '838.84' },
+      { member: 'kan', paidThb: '0.00' },
+    ])
+  })
+
+  it('deducts payouts from the central-account balance', () => {
+    const report = buildFinanceReport({
+      payments: [joinedRow({ orderId: 1, amountThb: '500', paymentDate: '2026-08-01' })],
+      expenses: [
+        expenseRecord({ totalAmountThb: '100', expenseDate: '2026-08-02' }),
+      ],
+      payouts: [payoutRecord({ amountThb: '250', payoutDate: '2026-08-03' })],
+      start: '2026-08-01',
+      end: '2026-08-31',
+    })
+
+    expect(report.payoutsThb).toBe('250.00')
+    expect(report.centralAccountBalanceThb).toBe('150.00')
+  })
+
+  it('totals payouts per recipient inside the period', () => {
+    const report = buildFinanceReport({
+      payments: [],
+      expenses: [],
+      payouts: [
+        payoutRecord({
+          id: 1,
+          recipient: 'kan',
+          amountThb: '250',
+          payoutDate: '2026-08-03',
+        }),
+        payoutRecord({
+          id: 2,
+          recipient: 'chompooh',
+          amountThb: '100.50',
+          payoutDate: '2026-08-04',
+        }),
+        payoutRecord({
+          id: 3,
+          recipient: 'chompooh',
+          amountThb: '900',
+          payoutDate: '2026-09-01',
+        }),
+      ],
+      start: '2026-08-01',
+      end: '2026-08-31',
+    })
+
+    expect(report.payoutRecipients).toEqual([
+      { recipient: 'chompooh', payoutsThb: '100.50' },
+      { recipient: 'kan', payoutsThb: '250.00' },
+    ])
   })
 })

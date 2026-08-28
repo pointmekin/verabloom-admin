@@ -132,14 +132,6 @@ export const deleteAdminOrderFn = createServerFn({ method: 'POST' })
     return { ok: true as const }
   })
 
-export const getPendingOrderCountFn = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    await assertAdmin()
-    const { listOrderRequests } = await import('./order-store.server')
-    return (await listOrderRequests({ status: 'pending_review' })).length
-  },
-)
-
 export type AdminOrderStatus = OrderStatus
 
 export const uploadAdminOrderImageFn = createServerFn({ method: 'POST' })

@@ -2,6 +2,10 @@ export const TEAM_MEMBERS = ['chompooh', 'meen', 'kan'] as const
 
 export type TeamMember = (typeof TEAM_MEMBERS)[number]
 
+export const PAYOUT_RECIPIENTS = ['chompooh', 'kan', 'meen'] as const satisfies readonly TeamMember[]
+
+export type PayoutRecipient = (typeof PAYOUT_RECIPIENTS)[number]
+
 export type TeamMemberSelection =
   TeamMember | readonly TeamMember[] | null | undefined
 

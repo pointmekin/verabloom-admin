@@ -1,19 +1,27 @@
 import {
+  bangkokTodayIso,
+  centralAccountBalanceThb,
   filterWithinPeriod,
   financeTotals,
   latestMonthKeys,
   monthlyFinanceSeries,
   netCashThb,
+  payoutRecipientTotals,
   receivedIncomeThb,
   recordedExpensesThb,
+  recordedPayoutsThb,
   teamMemberTotals,
-  bangkokTodayIso,
 } from '#/lib/finance'
-import type { MonthlyFinance, TeamMemberTotals } from '#/lib/finance'
+import type {
+  MonthlyFinance,
+  PayoutRecipientTotals,
+  TeamMemberTotals,
+} from '#/lib/finance'
 import type { TeamMember } from '#/lib/team-members'
 import { normalizeTeamMembers } from '#/lib/team-members'
 import type { ExpenseRecord } from './expense-store.server'
 import type { PaymentRecord } from './payment-store.server'
+import type { PayoutRecord } from './payout-store.server'
 import type { OrderRequest } from './order-store.server'
 
 export type FinancePaymentRow = PaymentRecord & {
@@ -35,9 +43,13 @@ export type FinanceReport = {
   end: string
   receivedThb: string
   expensesThb: string
+  payoutsThb: string
   netCashThb: string
+  centralAccountBalanceThb: string
   payments: FinancePaymentRow[]
   expenses: ExpenseRecord[]
+  payouts: PayoutRecord[]
+  payoutRecipients: PayoutRecipientTotals[]
   teamMembers: TeamMemberTotals[]
 }
 
@@ -76,6 +88,7 @@ export function buildDashboardFinancials(input: {
 export function buildFinanceReport(input: {
   payments: FinancePaymentRow[]
   expenses: ExpenseRecord[]
+  payouts?: PayoutRecord[]
   start: string
   end: string
 }): FinanceReport {
@@ -91,17 +104,34 @@ export function buildFinanceReport(input: {
     input.start,
     input.end,
   )
+  const payouts = filterWithinPeriod(
+    input.payouts ?? [],
+    (row) => row.payoutDate,
+    input.start,
+    input.end,
+  )
   const receivedThb = receivedIncomeThb(payments)
   const expensesThb = recordedExpensesThb(expenses)
+  const payoutsThb = recordedPayoutsThb(payouts)
   return {
     start: input.start,
     end: input.end,
     receivedThb,
     expensesThb,
+    payoutsThb,
     netCashThb: netCashThb(receivedThb, expensesThb),
+    centralAccountBalanceThb: centralAccountBalanceThb(
+      receivedThb,
+      expensesThb,
+      payoutsThb,
+    ),
     payments,
     expenses,
-    teamMembers: teamMemberTotals(payments, expenses),
+    payouts,
+    payoutRecipients: payoutRecipientTotals(payouts),
+    // Team members settle what they paid for the shop across every expense, so
+    // these totals cover all recorded expenses, not the reporting period.
+    teamMembers: teamMemberTotals(input.expenses),
   }
 }
 

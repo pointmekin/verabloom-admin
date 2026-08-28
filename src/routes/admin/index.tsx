@@ -11,7 +11,6 @@ import {
   ChartTooltipContent,
 } from '#/components/ui/chart'
 import type { ChartConfig } from '#/components/ui/chart'
-import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import { useLocale } from '#/lib/i18n'
@@ -19,16 +18,12 @@ import type { MessageKey } from '#/lib/i18n'
 import { formatThb, satangToDecimalString } from '#/lib/money'
 import { requireAdmin } from '#/lib/admin-guard'
 import { getAdminDashboardFn } from '#/server/admin-finance'
-import { getPendingOrderCountFn } from '#/server/admin-order'
 
 export const Route = createFileRoute('/admin/')({
   beforeLoad: () => requireAdmin(),
   loader: async () => {
-    const [financials, pendingCount] = await Promise.all([
-      getAdminDashboardFn(),
-      getPendingOrderCountFn(),
-    ])
-    return { financials, pendingCount }
+    const financials = await getAdminDashboardFn()
+    return { financials }
   },
   component: AdminHome,
 })
@@ -60,7 +55,7 @@ function formatChartSatang(value: TooltipValueType | undefined) {
 
 function AdminHome() {
   const { t } = useLocale()
-  const { financials, pendingCount } = Route.useLoaderData()
+  const { financials } = Route.useLoaderData()
 
   const chartData = financials.months.map((month) => {
     const [year, monthNumber] = month.monthKey.split('-')
@@ -88,7 +83,7 @@ function AdminHome() {
 
   return (
     <div className="admin-shell">
-      <AdminHeader pendingCount={pendingCount} />
+      <AdminHeader />
       <main className="admin-main">
         <div className="admin-page-heading">
           <div>
@@ -115,17 +110,6 @@ function AdminHome() {
               <strong>{formatThb(card.value)}</strong>
             </Card>
           ))}
-          <Card className="summary-card">
-            <span className="payments-summary-label">
-              {t('pendingRequests')}
-            </span>
-            <strong>
-              {pendingCount}
-              {pendingCount > 0 ? (
-                <Badge variant="destructive">{t('pendingRequests')}</Badge>
-              ) : null}
-            </strong>
-          </Card>
         </div>
 
         <Card className="editor-card dashboard-chart-card">

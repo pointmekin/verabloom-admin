@@ -108,6 +108,18 @@ _Avoid_: Accounting period, saved report
 Money a team member paid for shop materials or another shop cost.
 _Avoid_: Payment, reimbursement
 
+**Payout**:
+Money transferred from the central account to Chompooh or Kan. It records a completed transfer and is not a shop expense.
+_Avoid_: Expense, payment, reimbursement
+
+**Central account**:
+The account owned by Meen that receives recorded payments and sends payouts.
+_Avoid_: Expense account, payout recipient
+
+**Central account balance**:
+Received income minus recorded expenses and payouts for the selected reporting period.
+_Avoid_: Net cash, profit
+
 **Team member**:
 One of Chompooh, Meen, or Kan. A team member pays an expense and owns an order's flower work. Each one has an accent color used across the interface.
 _Avoid_: Admin, user, staff role

@@ -5,16 +5,22 @@ import {
   sumPaymentsSatang,
 } from './money'
 import type { OrderStatusForTotals, PaymentLike } from './money'
-import { TEAM_MEMBERS } from './team-members'
-import type { TeamMember } from './team-members'
+import { PAYOUT_RECIPIENTS, TEAM_MEMBERS } from './team-members'
+import type { PayoutRecipient, TeamMember } from './team-members'
 
 export type PaymentAmountLike = PaymentLike
+export type PayoutAmountLike = { amountThb: string }
+
 export type ExpenseAmountLike = { totalAmountThb: string }
 
 export type TeamMemberTotals = {
-  member: TeamMember | 'unassigned'
-  earnedThb: string
+  member: TeamMember
   paidThb: string
+}
+
+export type PayoutRecipientTotals = {
+  recipient: PayoutRecipient
+  payoutsThb: string
 }
 export type OrderWithPaymentsLike = {
   status: OrderStatusForTotals
@@ -59,10 +65,27 @@ export function recordedExpensesThb(expenses: readonly ExpenseAmountLike[]) {
   return satangToDecimalString(total)
 }
 
+export function recordedPayoutsThb(payouts: readonly PayoutAmountLike[]) {
+  let total = 0
+  for (const item of payouts) total += requireSatang(item.amountThb)
+  return satangToDecimalString(total)
+}
+
 export function netCashThb(receivedThb: string, expensesThb: string) {
   const received = requireSatang(receivedThb)
   const expenses = requireSatang(expensesThb)
   return satangToDecimalString(received - expenses)
+}
+
+export function centralAccountBalanceThb(
+  receivedThb: string,
+  expensesThb: string,
+  payoutsThb: string,
+) {
+  const received = requireSatang(receivedThb)
+  const expenses = requireSatang(expensesThb)
+  const payouts = requireSatang(payoutsThb)
+  return satangToDecimalString(received - expenses - payouts)
 }
 
 export function outstandingTotalThb(orders: readonly OrderWithPaymentsLike[]) {
@@ -84,41 +107,38 @@ export function financeTotals(input: FinanceTotalsInput): FinanceTotals {
   }
 }
 
-/**
- * Money each team member earned and paid. Income follows the order's task
- * owner; expenses follow the payer. Orders with no owner fall to `unassigned`.
- */
 export function teamMemberTotals(
-  payments: readonly (PaymentAmountLike & {
-    taskOwner: TeamMember | null
-  })[],
   expenses: readonly (ExpenseAmountLike & { payer: TeamMember })[],
 ): TeamMemberTotals[] {
-  const keys = [...TEAM_MEMBERS, 'unassigned'] as const
-  const earned = new Map<string, number>(keys.map((key) => [key, 0]))
-  const paid = new Map<string, number>(keys.map((key) => [key, 0]))
-  for (const payment of payments) {
-    const key = payment.taskOwner ?? 'unassigned'
-    earned.set(key, (earned.get(key) ?? 0) + requireSatang(payment.amountThb))
+  const paid: Record<TeamMember, number> = {
+    chompooh: 0,
+    meen: 0,
+    kan: 0,
   }
   for (const expense of expenses) {
-    paid.set(
-      expense.payer,
-      (paid.get(expense.payer) ?? 0) + requireSatang(expense.totalAmountThb),
-    )
+    paid[expense.payer] += requireSatang(expense.totalAmountThb)
   }
-  return keys
-    .map((member) => ({
-      member,
-      earnedThb: satangToDecimalString(earned.get(member) ?? 0),
-      paidThb: satangToDecimalString(paid.get(member) ?? 0),
-    }))
-    .filter(
-      (row) =>
-        row.member !== 'unassigned' ||
-        row.earnedThb !== '0.00' ||
-        row.paidThb !== '0.00',
-    )
+  return TEAM_MEMBERS.map((member) => ({
+    member,
+    paidThb: satangToDecimalString(paid[member]),
+  }))
+}
+
+export function payoutRecipientTotals(
+  payouts: readonly (PayoutAmountLike & { recipient: PayoutRecipient })[],
+): PayoutRecipientTotals[] {
+  const paid: Record<PayoutRecipient, number> = {
+    chompooh: 0,
+    kan: 0,
+    meen: 0,
+  }
+  for (const payout of payouts) {
+    paid[payout.recipient] += requireSatang(payout.amountThb)
+  }
+  return PAYOUT_RECIPIENTS.map((recipient) => ({
+    recipient,
+    payoutsThb: satangToDecimalString(paid[recipient]),
+  }))
 }
 
 export function isWithinInclusivePeriod(

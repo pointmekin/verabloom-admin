@@ -41,7 +41,6 @@ import {
   deleteAdminOrderFn,
   directOrderSchema,
   getAdminOrderFn,
-  getPendingOrderCountFn,
   orderUpdateSchema,
   saveAdminOrderFn,
   updateAdminOrderStatusFn,
@@ -52,16 +51,15 @@ import { listOrderPaymentsFn } from '#/server/admin-payment'
 export const Route = createFileRoute('/admin/orders/$orderId')({
   beforeLoad: () => requireAdmin(),
   loader: async ({ params }) => {
-    const [order, pendingCount, payments] = await Promise.all([
+    const [order, payments] = await Promise.all([
       params.orderId === 'new'
         ? Promise.resolve(null)
         : getAdminOrderFn({ data: { id: Number(params.orderId) } }),
-      getPendingOrderCountFn(),
       params.orderId === 'new'
         ? Promise.resolve([])
         : listOrderPaymentsFn({ data: { orderId: Number(params.orderId) } }),
     ])
-    return { order, pendingCount, payments }
+    return { order, payments }
   },
   component: AdminOrderEditor,
 })
@@ -139,7 +137,7 @@ function AdminOrderEditor() {
   const { t } = useLocale()
   const { toast } = useToast()
   const navigate = useNavigate()
-  const { order, pendingCount, payments } = Route.useLoaderData()
+  const { order, payments } = Route.useLoaderData()
   const isNew = Route.useParams().orderId === 'new'
 
   const [productNameSnapshot, setProductNameSnapshot] = useState(
@@ -310,7 +308,7 @@ function AdminOrderEditor() {
 
   return (
     <div className="admin-shell">
-      <AdminHeader pendingCount={pendingCount} />
+      <AdminHeader />
       <main className="admin-main product-editor-main">
         <Link to="/admin/orders" className="back-link">
           <ArrowLeft aria-hidden="true" size={16} />

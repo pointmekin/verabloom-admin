@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
+import { listPayouts } from './payout-store.server'
+
 const calendarDateSchema = z
   .string()
   .trim()
@@ -59,14 +61,17 @@ export const getAdminFinanceReportFn = createServerFn({ method: 'GET' })
     const [
       { buildFinanceReport, joinPaymentsWithOrders },
       [payments, expenses, orders],
+      payouts,
     ] = await Promise.all([
       import('./finance-report.server'),
       loadFinanceInputs(),
+      listPayouts(),
     ])
     return buildFinanceReport({
       payments: joinPaymentsWithOrders(payments, orders),
       expenses,
       start: data.start,
       end: data.end,
+      payouts,
     })
   })

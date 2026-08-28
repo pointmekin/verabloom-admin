@@ -71,6 +71,13 @@
       "when": 1787932104201,
       "tag": "0009_lively_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787935632811,
+      "tag": "0010_orange_prowler",
+      "breakpoints": true
     }
   ]
 }

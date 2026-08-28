@@ -9,6 +9,9 @@ import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
+import { Select, SelectItem } from '#/components/ui/select'
+import { Textarea } from '#/components/ui/textarea'
+import { useToast } from '#/components/ui/toast'
 import {
   Table,
   TableBody,
@@ -22,12 +25,15 @@ import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
 import { formatThb } from '#/lib/money'
 import { teamMemberAccentClass } from '#/lib/team-members'
-import type { TeamMember } from '#/lib/team-members'
 import {
   getAdminFinanceReportFn,
   reportingPeriodSchema,
 } from '#/server/admin-finance'
-import { getPendingOrderCountFn } from '#/server/admin-order'
+import {
+  addAdminPayoutFn,
+  payoutInputSchema,
+} from '#/server/admin-payout'
+import type { AdminPayoutRecipient } from '#/server/admin-payout'
 import { requireAdmin } from '#/lib/admin-guard'
 import type { FinanceReport } from '#/server/finance-report.server'
 import type { AdminExpensePayer } from '#/server/admin-expense'
@@ -36,11 +42,8 @@ export const Route = createFileRoute('/admin/finance')({
   beforeLoad: () => requireAdmin(),
   loader: async () => {
     const period = defaultReportingPeriod()
-    const [report, pendingCount] = await Promise.all([
-      getAdminFinanceReportFn({ data: period }),
-      getPendingOrderCountFn(),
-    ])
-    return { report, pendingCount, start: period.start, end: period.end }
+    const report = await getAdminFinanceReportFn({ data: period })
+    return { report, start: period.start, end: period.end }
   },
   component: AdminFinancePage,
 })
@@ -56,10 +59,6 @@ const payerLabels: Record<AdminExpensePayer, MessageKey> = {
   kan: 'payer_kan',
 }
 
-function memberLabel(member: TeamMember | 'unassigned'): MessageKey {
-  return member === 'unassigned' ? 'unassigned' : payerLabels[member]
-}
-
 function AdminFinancePage() {
   const { t } = useLocale()
   const initial = Route.useLoaderData()
@@ -68,6 +67,45 @@ function AdminFinancePage() {
   const [report, setReport] = useState<FinanceReport>(initial.report)
   const [periodError, setPeriodError] = useState<MessageKey | null>(null)
   const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
+  const [recipient, setRecipient] = useState<AdminPayoutRecipient>('chompooh')
+  const [payoutAmount, setPayoutAmount] = useState('')
+  const [payoutDate, setPayoutDate] = useState(bangkokTodayIso())
+  const [payoutNote, setPayoutNote] = useState('')
+  const [payoutError, setPayoutError] = useState<MessageKey | null>(null)
+  const [savingPayout, setSavingPayout] = useState(false)
+
+  async function recordPayout(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setPayoutError(null)
+    const parsed = payoutInputSchema.safeParse({
+      recipient,
+      amountThb: payoutAmount,
+      payoutDate,
+      note: payoutNote,
+    })
+    if (!parsed.success) {
+      setPayoutError('checkForm')
+      return
+    }
+    setSavingPayout(true)
+    try {
+      await addAdminPayoutFn({ data: parsed.data })
+      const next = await getAdminFinanceReportFn({
+        data: { start: report.start, end: report.end },
+      })
+      setReport(next)
+      setPayoutAmount('')
+      setPayoutNote('')
+      toast({ title: t('payoutSaved'), kind: 'success' })
+    } catch {
+      setPayoutError('saveError')
+      toast({ title: t('saveError'), kind: 'error' })
+    } finally {
+      setSavingPayout(false)
+    }
+  }
+
 
   async function applyPeriod(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -93,12 +131,16 @@ function AdminFinancePage() {
   const summaryCards = [
     { label: t('receivedIncome'), value: report.receivedThb },
     { label: t('totalExpenses'), value: report.expensesThb },
-    { label: t('netCash'), value: report.netCashThb },
+    { label: t('payouts'), value: report.payoutsThb },
+    {
+      label: t('centralAccountBalance'),
+      value: report.centralAccountBalanceThb,
+    },
   ]
 
   return (
     <div className="admin-shell">
-      <AdminHeader pendingCount={initial.pendingCount} />
+      <AdminHeader />
       <main className="admin-main finance-main">
         <div className="admin-page-heading">
           <div>
@@ -157,14 +199,136 @@ function AdminFinancePage() {
 
         <Card className="editor-card">
           <div className="editor-card-heading">
+            <h2>{t('recordPayout')}</h2>
+          </div>
+          <p className="field-hint">{t('payoutDescription')}</p>
+          <form onSubmit={recordPayout} noValidate>
+            <div className="editor-columns">
+              <div className="form-field">
+                <Label htmlFor="payout-recipient">{t('payoutRecipient')}</Label>
+                <Select
+                  id="payout-recipient"
+                  value={recipient}
+                  onValueChange={(value) =>
+                    setRecipient(value as AdminPayoutRecipient)
+                  }
+                >
+                  <SelectItem value="chompooh">{t('payer_chompooh')}</SelectItem>
+                  <SelectItem value="kan">{t('payer_kan')}</SelectItem>
+                  <SelectItem value="meen">{t('payer_meen')}</SelectItem>
+                </Select>
+              </div>
+              <div className="form-field">
+                <Label htmlFor="payout-amount">{t('payoutAmount')}</Label>
+                <Input
+                  id="payout-amount"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={payoutAmount}
+                  onChange={(event) => setPayoutAmount(event.target.value)}
+                />
+              </div>
+              <div className="form-field">
+                <Label htmlFor="payout-date">{t('payoutDate')}</Label>
+                <Input
+                  id="payout-date"
+                  type="date"
+                  value={payoutDate}
+                  onChange={(event) => setPayoutDate(event.target.value)}
+                />
+              </div>
+              <div className="form-field">
+                <Label htmlFor="payout-note">{t('payoutNote')}</Label>
+                <Textarea
+                  id="payout-note"
+                  rows={2}
+                  value={payoutNote}
+                  onChange={(event) => setPayoutNote(event.target.value)}
+                />
+              </div>
+            </div>
+            {payoutError ? (
+              <p className="form-error" role="alert">
+                {t(payoutError)}
+              </p>
+            ) : null}
+            <Button
+              className="compact-button"
+              disabled={savingPayout}
+              type="submit"
+            >
+              {t('recordPayout')}
+            </Button>
+          </form>
+        </Card>
+
+        <Card className="editor-card">
+          <div className="editor-card-heading">
+            <h2>{t('payouts')}</h2>
+            <Badge variant="secondary">{report.payouts.length}</Badge>
+          </div>
+          <div className="payments-summary">
+            {report.payoutRecipients.map((row) => (
+              <div className="payments-summary-cell" key={row.recipient}>
+                <span className="payments-summary-label">
+                  {t(payerLabels[row.recipient])}
+                </span>
+                <strong>{formatThb(row.payoutsThb)}</strong>
+              </div>
+            ))}
+            <div className="payments-summary-cell">
+              <span className="payments-summary-label">{t('payouts')}</span>
+              <strong>{formatThb(report.payoutsThb)}</strong>
+            </div>
+          </div>
+          {report.payouts.length === 0 ? (
+            <p className="field-hint">{t('noPayoutsInPeriod')}</p>
+          ) : (
+            <div className="orders-table-wrap">
+              <Table className="orders-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('payoutRecipient')}</TableHead>
+                    <TableHead>{t('payoutAmount')}</TableHead>
+                    <TableHead>{t('payoutDate')}</TableHead>
+                    <TableHead>{t('payoutNote')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {report.payouts.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell data-label={t('payoutRecipient')}>
+                        <Badge variant="outline">
+                          {t(payerLabels[row.recipient])}
+                        </Badge>
+                      </TableCell>
+                      <TableCell data-label={t('payoutAmount')}>
+                        {formatThb(row.amountThb)}
+                      </TableCell>
+                      <TableCell data-label={t('payoutDate')}>
+                        {row.payoutDate}
+                      </TableCell>
+                      <TableCell data-label={t('payoutNote')}>
+                        {row.note ?? '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </Card>
+
+        <Card className="editor-card">
+          <div className="editor-card-heading">
             <h2>{t('byTeamMember')}</h2>
           </div>
+          <p className="field-hint">{t('allRecordedExpenses')}</p>
           <div className="orders-table-wrap">
             <Table className="orders-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('taskOwner')}</TableHead>
-                  <TableHead>{t('earnedColumn')}</TableHead>
                   <TableHead>{t('paidColumn')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -174,14 +338,11 @@ function AdminFinancePage() {
                     <TableCell data-label={t('taskOwner')}>
                       <span
                         className={`owner-chip ${teamMemberAccentClass(
-                          row.member === 'unassigned' ? null : row.member,
+                          row.member,
                         )}`}
                       >
-                        {t(memberLabel(row.member))}
+                        {t(payerLabels[row.member])}
                       </span>
-                    </TableCell>
-                    <TableCell data-label={t('earnedColumn')}>
-                      {formatThb(row.earnedThb)}
                     </TableCell>
                     <TableCell data-label={t('paidColumn')}>
                       {formatThb(row.paidThb)}

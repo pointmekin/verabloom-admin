@@ -121,9 +121,21 @@ export const expenses = pgTable('expenses', {
     .defaultNow(),
 })
 
+export const payouts = pgTable('payouts', {
+  id: serial('id').primaryKey(),
+  recipient: text('recipient').notNull(),
+  amountThb: numeric('amount_thb', { precision: 12, scale: 2 }).notNull(),
+  payoutDate: date('payout_date', { mode: 'string' }).notNull(),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 export type Product = typeof products.$inferSelect
 export type ProductImage = typeof productImages.$inferSelect
 export type Customer = typeof customers.$inferSelect
 export type Order = typeof orders.$inferSelect
 export type Payment = typeof payments.$inferSelect
 export type Expense = typeof expenses.$inferSelect
+export type Payout = typeof payouts.$inferSelect
