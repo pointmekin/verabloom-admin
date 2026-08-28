@@ -29,10 +29,7 @@ import {
   getAdminFinanceReportFn,
   reportingPeriodSchema,
 } from '#/server/admin-finance'
-import {
-  addAdminPayoutFn,
-  payoutInputSchema,
-} from '#/server/admin-payout'
+import { addAdminPayoutFn, payoutInputSchema } from '#/server/admin-payout'
 import type { AdminPayoutRecipient } from '#/server/admin-payout'
 import { requireAdmin } from '#/lib/admin-guard'
 import type { FinanceReport } from '#/server/finance-report.server'
@@ -50,7 +47,7 @@ export const Route = createFileRoute('/admin/finance')({
 
 function defaultReportingPeriod() {
   const today = bangkokTodayIso()
-  return { start: `${today.slice(0, 7)}-01`, end: today }
+  return { start: `2026-07-01`, end: today }
 }
 
 const payerLabels: Record<AdminExpensePayer, MessageKey> = {
@@ -105,7 +102,6 @@ function AdminFinancePage() {
       setSavingPayout(false)
     }
   }
-
 
   async function applyPeriod(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -199,6 +195,41 @@ function AdminFinancePage() {
 
         <Card className="editor-card">
           <div className="editor-card-heading">
+            <h2>{t('byTeamMember')}</h2>
+          </div>
+          <p className="field-hint">{t('allRecordedExpenses')}</p>
+          <div className="orders-table-wrap">
+            <Table className="orders-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('taskOwner')}</TableHead>
+                  <TableHead>{t('paidColumn')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {report.teamMembers.map((row) => (
+                  <TableRow key={row.member}>
+                    <TableCell data-label={t('taskOwner')}>
+                      <span
+                        className={`owner-chip ${teamMemberAccentClass(
+                          row.member,
+                        )}`}
+                      >
+                        {t(payerLabels[row.member])}
+                      </span>
+                    </TableCell>
+                    <TableCell data-label={t('paidColumn')}>
+                      {formatThb(row.paidThb)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+
+        <Card className="editor-card">
+          <div className="editor-card-heading">
             <h2>{t('recordPayout')}</h2>
           </div>
           <p className="field-hint">{t('payoutDescription')}</p>
@@ -213,7 +244,9 @@ function AdminFinancePage() {
                     setRecipient(value as AdminPayoutRecipient)
                   }
                 >
-                  <SelectItem value="chompooh">{t('payer_chompooh')}</SelectItem>
+                  <SelectItem value="chompooh">
+                    {t('payer_chompooh')}
+                  </SelectItem>
                   <SelectItem value="kan">{t('payer_kan')}</SelectItem>
                   <SelectItem value="meen">{t('payer_meen')}</SelectItem>
                 </Select>
@@ -310,156 +343,6 @@ function AdminFinancePage() {
                       </TableCell>
                       <TableCell data-label={t('payoutNote')}>
                         {row.note ?? '—'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </Card>
-
-        <Card className="editor-card">
-          <div className="editor-card-heading">
-            <h2>{t('byTeamMember')}</h2>
-          </div>
-          <p className="field-hint">{t('allRecordedExpenses')}</p>
-          <div className="orders-table-wrap">
-            <Table className="orders-table">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('taskOwner')}</TableHead>
-                  <TableHead>{t('paidColumn')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {report.teamMembers.map((row) => (
-                  <TableRow key={row.member}>
-                    <TableCell data-label={t('taskOwner')}>
-                      <span
-                        className={`owner-chip ${teamMemberAccentClass(
-                          row.member,
-                        )}`}
-                      >
-                        {t(payerLabels[row.member])}
-                      </span>
-                    </TableCell>
-                    <TableCell data-label={t('paidColumn')}>
-                      {formatThb(row.paidThb)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-
-        <Card className="editor-card">
-          <div className="editor-card-heading">
-            <h2>{t('payments')}</h2>
-            <Badge variant="secondary">{report.payments.length}</Badge>
-          </div>
-          {report.payments.length === 0 ? (
-            <p className="field-hint">{t('noPaymentsInPeriod')}</p>
-          ) : (
-            <div className="orders-table-wrap">
-              <Table className="orders-table">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('customerColumn')}</TableHead>
-                    <TableHead>{t('taskOwner')}</TableHead>
-                    <TableHead>{t('requestReference')}</TableHead>
-                    <TableHead>{t('amountColumn')}</TableHead>
-                    <TableHead>{t('paymentDate')}</TableHead>
-                    <TableHead>{t('paymentMethod')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.payments.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell data-label={t('customerColumn')}>
-                        <strong>{row.customerName}</strong>
-                      </TableCell>
-                      <TableCell data-label={t('taskOwner')}>
-                        <OrderOwnerBadge owner={row.taskOwner} />
-                      </TableCell>
-                      <TableCell data-label={t('requestReference')}>
-                        <Link
-                          aria-label={`${t('viewOrder')} ${row.requestReference}`}
-                          className="text-link"
-                          to="/admin/orders/$orderId"
-                          params={{ orderId: String(row.orderId) }}
-                        >
-                          {row.requestReference}
-                          <ArrowRight aria-hidden="true" size={13} />
-                        </Link>
-                      </TableCell>
-                      <TableCell data-label={t('amountColumn')}>
-                        {formatThb(row.amountThb)}
-                      </TableCell>
-                      <TableCell data-label={t('paymentDate')}>
-                        {row.paymentDate}
-                      </TableCell>
-                      <TableCell data-label={t('paymentMethod')}>
-                        <Badge variant="outline">
-                          {t(
-                            (
-                              {
-                                bank_transfer: 'method_bank_transfer',
-                                cash: 'method_cash',
-                                other: 'method_other',
-                              } as const
-                            )[row.method],
-                          )}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </Card>
-
-        <Card className="editor-card">
-          <div className="editor-card-heading">
-            <h2>{t('expenses')}</h2>
-            <Badge variant="secondary">{report.expenses.length}</Badge>
-          </div>
-          {report.expenses.length === 0 ? (
-            <p className="field-hint">{t('noExpensesInPeriod')}</p>
-          ) : (
-            <div className="orders-table-wrap">
-              <Table className="orders-table">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('expenseDescription')}</TableHead>
-                    <TableHead>{t('expensePayer')}</TableHead>
-                    <TableHead>{t('amountColumn')}</TableHead>
-                    <TableHead>{t('expenseDate')}</TableHead>
-                    <TableHead>{t('quantity')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.expenses.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell data-label={t('expenseDescription')}>
-                        <strong>{row.description}</strong>
-                        {row.note ? <small>{row.note}</small> : null}
-                      </TableCell>
-                      <TableCell data-label={t('expensePayer')}>
-                        <Badge variant="outline">
-                          {t(payerLabels[row.payer])}
-                        </Badge>
-                      </TableCell>
-                      <TableCell data-label={t('amountColumn')}>
-                        {formatThb(row.totalAmountThb)}
-                      </TableCell>
-                      <TableCell data-label={t('expenseDate')}>
-                        {row.expenseDate}
-                      </TableCell>
-                      <TableCell data-label={t('quantity')}>
-                        {row.quantity ?? '—'}
                       </TableCell>
                     </TableRow>
                   ))}
