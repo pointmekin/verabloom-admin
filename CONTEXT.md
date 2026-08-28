@@ -41,7 +41,7 @@ The order's current stage: pending review, confirmed, work in progress, complete
 _Avoid_: Production stage, shipping status
 
 **Task owner**:
-The team member who makes the flowers for an order. Every order an admin saves has one. A customer's own request starts with no owner.
+One or more team members who make the flowers for an order. Every order an admin saves has at least one. A customer's own request starts with no owner.
 _Avoid_: Assignee, staff role, admin account
 
 **Request details**:

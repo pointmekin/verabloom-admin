@@ -60,7 +60,7 @@ export const orders = pgTable('orders', {
   }),
   productNameSnapshot: text('product_name_snapshot').notNull(),
   quantity: integer('quantity').notNull(),
-  taskOwner: text('task_owner'),
+  taskOwner: text('task_owner').array(),
   referenceImageObjectKey: text('reference_image_object_key'),
   customerName: text('customer_name').notNull(),
   socialChannel: text('social_channel').notNull(),

@@ -4,7 +4,7 @@ import { and, desc, eq, ilike, or } from 'drizzle-orm'
 
 import { getDatabase } from '#/db'
 import { orders, products } from '#/db/schema'
-import { isTeamMember } from '#/lib/team-members'
+import { isTeamMember, normalizeTeamMembers } from '#/lib/team-members'
 import type { TeamMember } from '#/lib/team-members'
 import { getObjectStorageUrl } from './storage.server'
 import { getCatalogProduct } from './catalog-store.server'
@@ -17,6 +17,8 @@ export type OrderStatus =
   | 'completed'
   | 'cancelled'
 
+export type TaskOwnerValue = TeamMember | TeamMember[] | null
+
 export type OrderRequest = {
   id: number
   requestReference: string
@@ -24,7 +26,7 @@ export type OrderRequest = {
   productId: number | null
   productNameSnapshot: string
   quantity: number
-  taskOwner: TeamMember | null
+  taskOwner: TaskOwnerValue
   referenceImageObjectKey: string | null
   referenceImageUrl: string | null
   customerId: number | null
@@ -47,7 +49,7 @@ export type OrderRequest = {
 type LegacyOrderEditableInput = {
   productId?: number
   quantity?: number
-  taskOwner: TeamMember
+  taskOwner: TeamMember | readonly TeamMember[]
   customerId?: number | null
   customerName: string
   socialChannel: OrderRequestInput['socialChannel']
@@ -66,7 +68,7 @@ type LegacyOrderEditableInput = {
 
 export type OrderEditableInput = {
   productNameSnapshot: string
-  taskOwner: TeamMember
+  taskOwner: TeamMember | readonly TeamMember[]
   socialContact: string
   phone?: string | null
   requestDetails: string
@@ -126,6 +128,7 @@ function normalizeMemoryOrder(order: OrderRequest): OrderRequest {
 }
 
 function mapDatabaseOrder(row: typeof orders.$inferSelect): OrderRequest {
+  const owners = normalizeTeamMembers(row.taskOwner)
   return {
     id: row.id,
     requestReference: row.requestReference,
@@ -133,7 +136,7 @@ function mapDatabaseOrder(row: typeof orders.$inferSelect): OrderRequest {
     productId: row.productId,
     productNameSnapshot: row.productNameSnapshot,
     quantity: row.quantity,
-    taskOwner: isTeamMember(row.taskOwner) ? row.taskOwner : null,
+    taskOwner: owners.length > 0 ? owners : null,
     referenceImageObjectKey: row.referenceImageObjectKey,
     referenceImageUrl: row.referenceImageObjectKey
       ? getObjectStorageUrl(row.referenceImageObjectKey)
@@ -167,7 +170,10 @@ function assertOrderFormInput(input: OrderEditableInput) {
   if (!input.socialContact.trim()) {
     throw new Error('LINE name is required')
   }
-  if (!isTeamMember(input.taskOwner)) {
+  const owners = Array.isArray(input.taskOwner)
+    ? input.taskOwner
+    : [input.taskOwner]
+  if (owners.length === 0 || !owners.every(isTeamMember)) {
     throw new Error('Choose a task owner')
   }
   if (!['postal', 'messenger', 'collection'].includes(input.deliveryMethod)) {
@@ -176,6 +182,11 @@ function assertOrderFormInput(input: OrderEditableInput) {
   if (!/^\d+(?:\.\d{1,2})?$/.test(input.orderValueThb.trim())) {
     throw new Error('Enter a valid Thai baht amount')
   }
+}
+
+function taskOwnerValue(value: TeamMember | readonly TeamMember[]) {
+  const owners = normalizeTeamMembers(value)
+  return Array.isArray(value) ? owners : owners[0] ?? null
 }
 
 const statusesRequiringValue: OrderStatus[] = [
@@ -329,7 +340,7 @@ export async function createDirectOrder(input: DirectOrderInput) {
       productId: null,
       productNameSnapshot: input.productNameSnapshot.trim(),
       quantity: 1,
-      taskOwner: input.taskOwner,
+      taskOwner: taskOwnerValue(input.taskOwner),
       referenceImageObjectKey: null,
       referenceImageUrl: null,
       customerId: null,
@@ -359,7 +370,7 @@ export async function createDirectOrder(input: DirectOrderInput) {
       productId: null,
       productNameSnapshot: input.productNameSnapshot.trim(),
       quantity: 1,
-      taskOwner: input.taskOwner,
+      taskOwner: normalizeTeamMembers(input.taskOwner),
       customerId: null,
       customerName: input.socialContact.trim(),
       socialChannel: 'line',
@@ -472,7 +483,7 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
     const updated: OrderRequest = {
       ...existing,
       productNameSnapshot: input.productNameSnapshot.trim(),
-      taskOwner: input.taskOwner,
+      taskOwner: taskOwnerValue(input.taskOwner),
       customerName: input.socialContact.trim(),
       socialChannel: 'line',
       socialContact: input.socialContact.trim(),
@@ -501,7 +512,7 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
       requiredDate: input.requiredDate,
       orderValueThb: input.orderValueThb.trim(),
       updatedAt: new Date(),
-      taskOwner: input.taskOwner,
+      taskOwner: normalizeTeamMembers(input.taskOwner),
     })
     .where(eq(orders.id, id))
     .returning()

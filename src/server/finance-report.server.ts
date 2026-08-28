@@ -11,6 +11,7 @@ import {
 } from '#/lib/finance'
 import type { MonthlyFinance, TeamMemberTotals } from '#/lib/finance'
 import type { TeamMember } from '#/lib/team-members'
+import { normalizeTeamMembers } from '#/lib/team-members'
 import type { ExpenseRecord } from './expense-store.server'
 import type { PaymentRecord } from './payment-store.server'
 import type { OrderRequest } from './order-store.server'
@@ -120,7 +121,7 @@ export function joinPaymentsWithOrders(
       ...payment,
       customerName: order.customerName,
       requestReference: order.requestReference,
-      taskOwner: order.taskOwner,
+      taskOwner: normalizeTeamMembers(order.taskOwner)[0] ?? null,
     })
   }
   return rows

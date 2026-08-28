@@ -5,9 +5,13 @@ import { TEAM_MEMBERS } from '#/lib/team-members'
 import type { OrderStatus } from './order-store.server'
 
 const deliveryMethodSchema = z.enum(['postal', 'messenger', 'collection'])
-const taskOwnerSchema = z.enum(TEAM_MEMBERS, {
+const taskOwnerMemberSchema = z.enum(TEAM_MEMBERS, {
   message: 'Choose a task owner',
 })
+const taskOwnerSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? [value] : value),
+  z.array(taskOwnerMemberSchema).min(1, 'Choose a task owner'),
+)
 const statusSchema = z.enum([
   'pending_review',
   'confirmed',

@@ -556,6 +556,11 @@ a {
   line-height: 1.2;
   white-space: nowrap;
 }
+.order-owner-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
 .owner-chip.owner-chompooh {
   color: var(--owner-chompooh);
   background: var(--owner-chompooh-soft);
@@ -1090,7 +1095,8 @@ a {
 }
 .form-field > input,
 .form-field > textarea,
-.form-field > [data-slot='select'] {
+.form-field > [data-slot='select'],
+.form-field > [data-slot='multi-select'] {
   margin-top: 0.05rem;
 }
 .form-field textarea {

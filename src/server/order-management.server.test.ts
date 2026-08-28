@@ -127,6 +127,27 @@ describe('direct order management', () => {
     expect(updated.taskOwner).toBe('kan')
   })
 
+  it('stores multiple task owners', async () => {
+    const order = await createDirectOrder({
+      ...baseInput,
+      taskOwner: ['chompooh', 'meen'],
+    })
+
+    expect(order.taskOwner).toEqual(['chompooh', 'meen'])
+
+    const updated = await updateOrder(order.id, {
+      ...baseInput,
+      taskOwner: ['meen', 'kan'],
+    })
+    expect(updated.taskOwner).toEqual(['meen', 'kan'])
+    expect(
+      directOrderSchema.safeParse({
+        ...baseInput,
+        taskOwner: ['chompooh', 'unknown'],
+      }).success,
+    ).toBe(false)
+  })
+
   it('links an uploaded reference image to the order', async () => {
     setObjectStorageForTests({
       putObject: async () => {},

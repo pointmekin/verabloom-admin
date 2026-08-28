@@ -2,12 +2,12 @@ import { Flower, UserRound } from 'lucide-react'
 
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
-import { teamMemberAccentClass } from '#/lib/team-members'
-import type { TeamMember } from '#/lib/team-members'
+import { normalizeTeamMembers, teamMemberAccentClass } from '#/lib/team-members'
+import type { TeamMember, TeamMemberSelection } from '#/lib/team-members'
 import { cn } from '#/lib/utils'
 
 interface OrderOwnerBadgeProps {
-  owner: TeamMember | null
+  owner: TeamMemberSelection
   size?: 'default' | 'large'
   className?: string
 }
@@ -22,18 +22,38 @@ export function OrderOwnerBadge({
   className,
 }: OrderOwnerBadgeProps) {
   const { t } = useLocale()
-  const Icon = owner ? Flower : UserRound
+  const owners = normalizeTeamMembers(owner)
   return (
-    <span
-      className={cn(
-        'owner-chip',
-        teamMemberAccentClass(owner),
-        size === 'large' && 'is-large',
-        className,
+    <span className={cn('order-owner-badges', className)}>
+      {owners.length > 0 ? (
+        owners.map((member) => {
+          const Icon = Flower
+          return (
+            <span
+              className={cn(
+                'owner-chip',
+                teamMemberAccentClass(member),
+                size === 'large' && 'is-large',
+              )}
+              key={member}
+            >
+              <Icon aria-hidden="true" size={size === 'large' ? 15 : 13} />
+              {t(ownerLabelKey(member))}
+            </span>
+          )
+        })
+      ) : (
+        <span
+          className={cn(
+            'owner-chip',
+            teamMemberAccentClass(null),
+            size === 'large' && 'is-large',
+          )}
+        >
+          <UserRound aria-hidden="true" size={size === 'large' ? 15 : 13} />
+          {t('unassigned')}
+        </span>
       )}
-    >
-      <Icon aria-hidden="true" size={size === 'large' ? 15 : 13} />
-      {t(ownerLabelKey(owner))}
     </span>
   )
 }

@@ -12,21 +12,26 @@ import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '#/components/ui/drawer'
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '#/components/ui/dialog'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
-import { Select, SelectItem } from '#/components/ui/select'
+import { MultiSelect, Select, SelectItem } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
 import { useToast } from '#/components/ui/toast'
 import { requireAdmin } from '#/lib/admin-guard'
-import { TEAM_MEMBERS, teamMemberAccentClass } from '#/lib/team-members'
+import {
+  TEAM_MEMBERS,
+  isTeamMember,
+  normalizeTeamMembers,
+  teamMemberAccentClass,
+} from '#/lib/team-members'
 import type { TeamMember } from '#/lib/team-members'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
@@ -151,8 +156,8 @@ function AdminOrderEditor() {
   const [orderAddress, setOrderAddress] = useState(order?.orderAddress ?? '')
   const [requiredDate, setRequiredDate] = useState(order?.requiredDate ?? '')
   const [orderValueThb, setOrderValueThb] = useState(order?.orderValueThb ?? '')
-  const [taskOwner, setTaskOwner] = useState<TeamMember | null>(
-    order?.taskOwner ?? null,
+  const [taskOwners, setTaskOwners] = useState<TeamMember[]>(
+    normalizeTeamMembers(order?.taskOwner),
   )
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [status, setStatus] = useState<AdminOrderStatus>(
@@ -169,6 +174,9 @@ function AdminOrderEditor() {
   useEffect(() => {
     setStatus(order?.status ?? 'pending_review')
   }, [order?.id, order?.status])
+  useEffect(() => {
+    setTaskOwners(normalizeTeamMembers(order?.taskOwner))
+  }, [order?.id, order?.taskOwner])
 
   if (!isNew && !order) {
     return (
@@ -203,7 +211,7 @@ function AdminOrderEditor() {
     try {
       const input = {
         productNameSnapshot,
-        taskOwner,
+        taskOwner: taskOwners,
         socialContact,
         phone,
         requestDetails,
@@ -285,7 +293,7 @@ function AdminOrderEditor() {
   }
 
   async function remove() {
-    if (!order) return
+    if (!order || saving) return
     setSaving(true)
     try {
       await deleteAdminOrderFn({ data: { id: order.id } })
@@ -294,9 +302,9 @@ function AdminOrderEditor() {
     } catch {
       setError(t('saveError'))
       toast({ title: t('saveError'), kind: 'error' })
-      setSaving(false)
     } finally {
       setConfirmingDelete(false)
+      setSaving(false)
     }
   }
 
@@ -389,29 +397,28 @@ function AdminOrderEditor() {
         ) : null}
 
         <form className="product-editor-form" onSubmit={submit}>
-          <Card className={`editor-card ${teamMemberAccentClass(taskOwner)}`}>
+          <Card className={`editor-card ${teamMemberAccentClass(taskOwners)}`}>
             <div className="editor-card-heading">
               <div>
                 <h2>{t('taskOwner')}</h2>
-                <OrderOwnerBadge owner={taskOwner} />
+                <OrderOwnerBadge owner={taskOwners} />
               </div>
             </div>
             <div className="form-field owner-field-accent">
               <Label htmlFor="order-owner">{t('taskOwner')}</Label>
-              <Select
+              <MultiSelect
+                aria-invalid={Boolean(fieldErrors.taskOwner)}
                 id="order-owner"
-                value={taskOwner ?? ''}
-                onValueChange={(value) =>
-                  setTaskOwner(value ? (value as TeamMember) : null)
+                options={TEAM_MEMBERS.map((member) => ({
+                  label: t(`payer_${member}` as MessageKey),
+                  value: member,
+                }))}
+                onValueChange={(values) =>
+                  setTaskOwners(values.filter(isTeamMember))
                 }
-              >
-                <SelectItem value="">{t('unassigned')}</SelectItem>
-                {TEAM_MEMBERS.map((member) => (
-                  <SelectItem key={member} value={member}>
-                    {t(`payer_${member}` as MessageKey)}
-                  </SelectItem>
-                ))}
-              </Select>
+                placeholder={t('unassigned')}
+                value={taskOwners}
+              />
               {fieldErrors.taskOwner ? (
                 <p className="field-error" role="alert">
                   {fieldErrors.taskOwner}
@@ -603,35 +610,31 @@ function AdminOrderEditor() {
           </div>
         ) : null}
 
-        <Drawer
-          open={confirmingDelete}
-          onOpenChange={setConfirmingDelete}
-          snapPoints={['240px', 1]}
-        >
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>{t('confirmDeleteOrder')}</DrawerTitle>
-              <DrawerDescription>
+        <Dialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('confirmDeleteOrder')}</DialogTitle>
+              <DialogDescription>
                 {t('deleteOrderDescription')}
-              </DrawerDescription>
-            </DrawerHeader>
-            <DrawerFooter>
-              <DrawerClose asChild>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
                 <Button type="button" variant="outline">
                   {t('keepOrder')}
                 </Button>
-              </DrawerClose>
+              </DialogClose>
               <Button
                 type="button"
                 variant="destructive"
                 disabled={saving}
-                onClick={remove}
+                onClick={() => void remove()}
               >
                 {t('deleteOrder')}
               </Button>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   )
