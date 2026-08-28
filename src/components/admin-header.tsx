@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import { LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 
@@ -18,12 +18,13 @@ import { useLocale } from '#/lib/i18n'
 
 export function AdminHeader({ pendingCount }: { pendingCount: number }) {
   const { t } = useLocale()
+  const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   async function logout() {
     const { logoutFn } = await import('#/server/auth')
     await logoutFn()
-    window.location.assign('/admin/login')
+    await router.navigate({ to: '/admin/login' })
   }
 
   return (

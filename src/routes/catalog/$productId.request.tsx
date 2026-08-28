@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Flower2 } from 'lucide-react'
 import { useState } from 'react'
 import { LanguageSwitcher } from '#/components/language-switcher'
@@ -9,14 +9,12 @@ import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Select, SelectItem } from '#/components/ui/select'
 import { useLocale } from '#/lib/i18n'
-import { getPublicProductFn } from '#/server/catalog'
 import { orderRequestSchema } from '#/server/order'
 
 export const Route = createFileRoute('/catalog/$productId/request')({
-  loader: async ({ params }) => {
-    const id = Number(params.productId)
-    if (!Number.isSafeInteger(id) || id < 1) return null
-    return getPublicProductFn({ data: { id } })
+  loader: async ({ parentMatchPromise }) => {
+    const parent = await parentMatchPromise
+    return parent.loaderData
   },
   component: OrderRequestPage,
 })
@@ -25,6 +23,7 @@ type FieldErrors = Record<string, string>
 
 function OrderRequestPage() {
   const { t } = useLocale()
+  const navigate = useNavigate()
   const product = Route.useLoaderData()
   const [deliveryMethod, setDeliveryMethod] = useState('collection')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -122,9 +121,10 @@ function OrderRequestPage() {
       }
       const result = readSuccessfulRequest(body)
       if (!result) throw new Error('Missing request reference')
-      window.location.assign(
-        `/catalog/request-success?reference=${encodeURIComponent(result.requestReference)}`,
-      )
+      await navigate({
+        to: '/catalog/request-success',
+        search: { reference: result.requestReference },
+      })
     } catch {
       setError(t('requestSubmitError'))
       setSubmitting(false)
@@ -176,10 +176,14 @@ function OrderRequestPage() {
       </header>
 
       <main className="request-main">
-        <a href={`/catalog/${selectedProduct.id}`} className="back-link">
+        <Link
+          to="/catalog/$productId"
+          params={{ productId: String(selectedProduct.id) }}
+          className="back-link"
+        >
           <ArrowLeft aria-hidden="true" size={16} />
           {t('backToProduct')}
-        </a>
+        </Link>
         <div className="request-heading">
           <p className="eyebrow">{t('publicKicker')}</p>
           <h1>{t('requestTitle')}</h1>

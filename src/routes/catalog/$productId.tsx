@@ -81,9 +81,12 @@ function ProductPage() {
               }}
             />
             <Button asChild className="primary-button request-cta">
-              <a href={`/catalog/${product.id}/request`}>
+              <Link
+                to="/catalog/$productId/request"
+                params={{ productId: String(product.id) }}
+              >
                 {t('requestProduct')}
-              </a>
+              </Link>
             </Button>
             <section className="product-variations">
               <strong>
