@@ -14,7 +14,7 @@ describe('admin session cookie', () => {
       maxAge: 60 * 60 * 24 * 30,
       cookie: {
         httpOnly: true,
-        sameSite: 'strict',
+        sameSite: 'lax',
         secure: true,
         path: '/',
       },

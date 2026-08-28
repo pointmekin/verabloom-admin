@@ -1,8 +1,8 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 
-import { useSession } from '@tanstack/react-start/server'
+import { getCookie, useSession } from '@tanstack/react-start/server'
 
-import { createSessionConfig } from './session-config'
+import { SESSION_COOKIE_NAME, createSessionConfig } from './session-config'
 
 type AdminSession = {
   authenticated: true
@@ -45,6 +45,12 @@ export async function authenticateAdmin(email: string, password: string) {
 }
 
 export async function hasAdminSession() {
+  // Reading a missing session makes the session library write a new empty
+  // cookie. Skip that write so a request without the cookie cannot replace a
+  // valid session.
+  if (!getCookie(SESSION_COOKIE_NAME)) {
+    return false
+  }
   const session = await adminSession()
   return session.data.authenticated === true
 }

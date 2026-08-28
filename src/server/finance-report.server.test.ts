@@ -232,6 +232,7 @@ describe('buildFinanceReport', () => {
       payoutRecipients: [
         { recipient: 'chompooh', payoutsThb: '0.00' },
         { recipient: 'kan', payoutsThb: '0.00' },
+        { recipient: 'meen', payoutsThb: '0.00' },
       ],
       teamMembers: [
         { member: 'chompooh', paidThb: '0.00' },
@@ -346,6 +347,7 @@ describe('buildFinanceReport', () => {
     expect(report.payoutRecipients).toEqual([
       { recipient: 'chompooh', payoutsThb: '100.50' },
       { recipient: 'kan', payoutsThb: '250.00' },
+      { recipient: 'meen', payoutsThb: '0.00' },
     ])
   })
 })

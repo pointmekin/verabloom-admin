@@ -1,9 +1,8 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowRight, CalendarRange } from 'lucide-react'
-import { useState } from 'react'
+import { createFileRoute } from '@tanstack/react-router'
+import { CalendarRange, Pencil } from 'lucide-react'
+import { useRef, useState } from 'react'
 
 import { AdminHeader } from '#/components/admin-header'
-import { OrderOwnerBadge } from '#/components/order-owner-badge'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
@@ -29,10 +28,15 @@ import {
   getAdminFinanceReportFn,
   reportingPeriodSchema,
 } from '#/server/admin-finance'
-import { addAdminPayoutFn, payoutInputSchema } from '#/server/admin-payout'
+import {
+  addAdminPayoutFn,
+  payoutInputSchema,
+  updateAdminPayoutFn,
+} from '#/server/admin-payout'
 import type { AdminPayoutRecipient } from '#/server/admin-payout'
 import { requireAdmin } from '#/lib/admin-guard'
 import type { FinanceReport } from '#/server/finance-report.server'
+import type { PayoutRecord } from '#/server/payout-store.server'
 import type { AdminExpensePayer } from '#/server/admin-expense'
 
 export const Route = createFileRoute('/admin/finance')({
@@ -71,6 +75,32 @@ function AdminFinancePage() {
   const [payoutNote, setPayoutNote] = useState('')
   const [payoutError, setPayoutError] = useState<MessageKey | null>(null)
   const [savingPayout, setSavingPayout] = useState(false)
+  const [editingPayoutId, setEditingPayoutId] = useState<number | null>(null)
+  const payoutFormHeadingRef = useRef<HTMLHeadingElement>(null)
+
+
+  function resetPayoutForm() {
+    setEditingPayoutId(null)
+    setRecipient('chompooh')
+    setPayoutAmount('')
+    setPayoutDate(bangkokTodayIso())
+    setPayoutNote('')
+    setPayoutError(null)
+  }
+
+  function editPayout(payout: PayoutRecord) {
+    setEditingPayoutId(payout.id)
+    setRecipient(payout.recipient)
+    setPayoutAmount(payout.amountThb)
+    setPayoutDate(payout.payoutDate)
+    setPayoutNote(payout.note ?? '')
+    setPayoutError(null)
+    payoutFormHeadingRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }
+
 
   async function recordPayout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -85,16 +115,25 @@ function AdminFinancePage() {
       setPayoutError('checkForm')
       return
     }
+    const isEditing = editingPayoutId !== null
     setSavingPayout(true)
     try {
-      await addAdminPayoutFn({ data: parsed.data })
+      if (!isEditing) {
+        await addAdminPayoutFn({ data: parsed.data })
+      } else {
+        await updateAdminPayoutFn({
+          data: { id: editingPayoutId, ...parsed.data },
+        })
+      }
       const next = await getAdminFinanceReportFn({
         data: { start: report.start, end: report.end },
       })
       setReport(next)
-      setPayoutAmount('')
-      setPayoutNote('')
-      toast({ title: t('payoutSaved'), kind: 'success' })
+      resetPayoutForm()
+      toast({
+        title: t(isEditing ? 'payoutUpdated' : 'payoutSaved'),
+        kind: 'success',
+      })
     } catch {
       setPayoutError('saveError')
       toast({ title: t('saveError'), kind: 'error' })
@@ -230,7 +269,9 @@ function AdminFinancePage() {
 
         <Card className="editor-card">
           <div className="editor-card-heading">
-            <h2>{t('recordPayout')}</h2>
+            <h2 ref={payoutFormHeadingRef}>
+              {t(editingPayoutId === null ? 'recordPayout' : 'editPayout')}
+            </h2>
           </div>
           <p className="field-hint">{t('payoutDescription')}</p>
           <form onSubmit={recordPayout} noValidate>
@@ -285,13 +326,25 @@ function AdminFinancePage() {
                 {t(payoutError)}
               </p>
             ) : null}
-            <Button
-              className="compact-button"
-              disabled={savingPayout}
-              type="submit"
-            >
-              {t('recordPayout')}
-            </Button>
+            <div className="payment-item-actions">
+              {editingPayoutId !== null ? (
+                <Button
+                  disabled={savingPayout}
+                  onClick={resetPayoutForm}
+                  type="button"
+                  variant="outline"
+                >
+                  {t('cancel')}
+                </Button>
+              ) : null}
+              <Button
+                className="compact-button"
+                disabled={savingPayout}
+                type="submit"
+              >
+                {t(editingPayoutId === null ? 'recordPayout' : 'save')}
+              </Button>
+            </div>
           </form>
         </Card>
 
@@ -325,6 +378,7 @@ function AdminFinancePage() {
                     <TableHead>{t('payoutAmount')}</TableHead>
                     <TableHead>{t('payoutDate')}</TableHead>
                     <TableHead>{t('payoutNote')}</TableHead>
+                    <TableHead>{t('manage')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -343,6 +397,19 @@ function AdminFinancePage() {
                       </TableCell>
                       <TableCell data-label={t('payoutNote')}>
                         {row.note ?? '—'}
+                      </TableCell>
+                      <TableCell data-label={t('manage')}>
+                        <Button
+                          aria-label={t('editPayout')}
+                          disabled={savingPayout}
+                          onClick={() => editPayout(row)}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <Pencil aria-hidden="true" size={14} />
+                          {t('editPayout')}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

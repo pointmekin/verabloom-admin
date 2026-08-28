@@ -2,7 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { hasAdminSession } from './auth-session.server'
-import { createPayout, listPayouts } from './payout-store.server'
+import { createPayout, listPayouts, updatePayout } from './payout-store.server'
 
 import { PAYOUT_RECIPIENTS } from '#/lib/team-members'
 
@@ -31,6 +31,8 @@ export const payoutInputSchema = z.object({
   note: z.string().trim().max(500, 'Enter a shorter note').default(''),
 })
 
+const payoutIdSchema = z.object({ id: z.coerce.number().int().positive() })
+
 async function assertAdmin() {
   if (!(await hasAdminSession())) throw new Error('Unauthorized')
 }
@@ -47,6 +49,13 @@ export const addAdminPayoutFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     await assertAdmin()
     return createPayout(data)
+  })
+
+export const updateAdminPayoutFn = createServerFn({ method: 'POST' })
+  .validator(payoutIdSchema.and(payoutInputSchema))
+  .handler(async ({ data }) => {
+    await assertAdmin()
+    return updatePayout(data.id, data)
   })
 
 export type AdminPayoutRecipient = z.infer<

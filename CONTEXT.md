@@ -109,7 +109,7 @@ Money a team member paid for shop materials or another shop cost.
 _Avoid_: Payment, reimbursement
 
 **Payout**:
-Money transferred from the central account to Chompooh or Kan. It records a completed transfer and is not a shop expense.
+Money transferred from the central account to a team member. It records a completed transfer and is not a shop expense.
 _Avoid_: Expense, payment, reimbursement
 
 **Central account**:

@@ -4,6 +4,7 @@ import {
   clearPayoutMemoryForTests,
   createPayout,
   listPayouts,
+  updatePayout,
 } from './payout-store.server'
 
 process.env.VERABLOOM_PAYOUT_STORE = 'memory'
@@ -28,11 +29,10 @@ describe('payout store', () => {
       note: 'August distribution',
     })
   })
-
-  it('rejects the central-account owner as a payout recipient', async () => {
+  it('rejects an unknown payout recipient', async () => {
     await expect(
       createPayout({
-        recipient: 'meen',
+        recipient: 'other',
         amountThb: '100',
         payoutDate: '2026-08-28',
       }),
@@ -55,5 +55,30 @@ describe('payout store', () => {
       { recipient: 'kan', amountThb: '200' },
       { recipient: 'chompooh', amountThb: '100' },
     ])
+  })
+
+  it('updates an existing payout without creating another record', async () => {
+    const payout = await createPayout({
+      recipient: 'chompooh',
+      amountThb: '100',
+      payoutDate: '2026-08-01',
+      note: 'Initial amount',
+    })
+
+    await expect(
+      updatePayout(payout.id, {
+        recipient: 'kan',
+        amountThb: '250.50',
+        payoutDate: '2026-08-02',
+        note: 'Corrected amount',
+      }),
+    ).resolves.toMatchObject({
+      id: payout.id,
+      recipient: 'kan',
+      amountThb: '250.50',
+      payoutDate: '2026-08-02',
+      note: 'Corrected amount',
+    })
+    await expect(listPayouts()).resolves.toHaveLength(1)
   })
 })

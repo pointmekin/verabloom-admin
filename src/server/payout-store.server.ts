@@ -1,4 +1,4 @@
-import { desc } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 
 import { getDatabase } from '#/db'
 import { payouts } from '#/db/schema'
@@ -113,6 +113,24 @@ export async function createPayout(input: PayoutInput) {
     .values(values)
     .returning()
   return mapDatabasePayout(created)
+}
+
+export async function updatePayout(id: number, input: PayoutInput) {
+  const values = normalizedInput(input)
+  if (!useDatabase()) {
+    const existing = memory.payouts.get(id)
+    if (!existing) throw new Error('Payout not found')
+    const updated = { ...existing, ...values }
+    memory.payouts.set(id, updated)
+    return { ...updated }
+  }
+  const updatedRows = await getDatabase()
+    .update(payouts)
+    .set(values)
+    .where(eq(payouts.id, id))
+    .returning()
+  if (updatedRows.length === 0) throw new Error('Payout not found')
+  return mapDatabasePayout(updatedRows[0])
 }
 
 export async function listPayouts(): Promise<PayoutRecord[]> {
