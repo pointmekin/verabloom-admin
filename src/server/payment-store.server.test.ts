@@ -22,6 +22,7 @@ process.env.VERABLOOM_PAYMENT_STORE = 'memory'
 
 const baseInput = {
   productNameSnapshot: 'Spring bouquet',
+  taskOwner: 'chompooh' as const,
   socialContact: '@mali',
   phone: '',
   requestDetails: '',

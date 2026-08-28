@@ -738,10 +738,19 @@ a {
 }
 .catalog-card-image img,
 .admin-product-thumb img,
-.image-editor-thumb img {
+.image-editor-thumb img,
+.order-reference-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.order-reference-image {
+  width: min(100%, 28rem);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--image-placeholder);
 }
 .catalog-card-body {
   padding: 1.15rem 1.2rem 1.3rem;
@@ -1112,6 +1121,11 @@ a {
   color: var(--muted-ink);
   font-size: 0.75rem;
   line-height: 1.6;
+}
+.pending-image {
+  max-width: 324px;
+  max-height: 324px;
+  border-radius: 0.65rem;
 }
 .visibility-field {
   display: flex;

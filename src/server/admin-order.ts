@@ -1,9 +1,13 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
+import { TEAM_MEMBERS } from '#/lib/team-members'
 import type { OrderStatus } from './order-store.server'
 
-const deliveryMethodSchema = z.enum(['postal', 'messenger'])
+const deliveryMethodSchema = z.enum(['postal', 'messenger', 'collection'])
+const taskOwnerSchema = z.enum(TEAM_MEMBERS, {
+  message: 'Choose a task owner',
+})
 const statusSchema = z.enum([
   'pending_review',
   'confirmed',
@@ -36,6 +40,7 @@ const moneySchema = z
 
 const orderFormSchema = z.object({
   productNameSnapshot: z.string().trim().min(1).max(200),
+  taskOwner: taskOwnerSchema,
   socialContact: z.string().trim().min(1).max(320),
   phone: z.string().trim().max(60).default(''),
   requestDetails: z.string().trim().max(5000).default(''),
@@ -49,6 +54,11 @@ export const orderUpdateSchema = orderFormSchema
 export const directOrderSchema = orderFormSchema
 
 const orderIdSchema = z.object({ id: z.coerce.number().int().positive() })
+const orderImageUploadSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  mimeType: z.string().min(1),
+  base64: z.string().min(1),
+})
 const orderStatusUpdateInputSchema = orderIdSchema.and(orderStatusUpdateSchema)
 
 const orderListSchema = z.object({
@@ -127,3 +137,20 @@ export const getPendingOrderCountFn = createServerFn({ method: 'GET' }).handler(
 )
 
 export type AdminOrderStatus = OrderStatus
+
+export const uploadAdminOrderImageFn = createServerFn({ method: 'POST' })
+  .validator(orderImageUploadSchema)
+  .handler(async ({ data }) => {
+    // Keep server-only persistence and storage modules out of the browser bundle.
+    const { getOrderById, setOrderReferenceImage } = await import(
+      './order-store.server'
+    )
+    if (!(await getOrderById(data.id))) throw new Error('Order not found')
+    const { uploadOrderImageObject } = await import('./storage.server')
+    const uploaded = await uploadOrderImageObject({
+      orderId: data.id,
+      mimeType: data.mimeType,
+      base64: data.base64,
+    })
+    return setOrderReferenceImage(data.id, uploaded.objectKey)
+  })

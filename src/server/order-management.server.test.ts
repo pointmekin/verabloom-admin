@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { directOrderSchema, orderUpdateSchema } from './admin-order'
@@ -8,14 +9,20 @@ import {
   getOrderById,
   listOrderRequests,
   listOrderRequestsPage,
+  setOrderReferenceImage,
   updateOrder,
   updateOrderStatus,
 } from './order-store.server'
+import {
+  resetObjectStorageForTests,
+  setObjectStorageForTests,
+} from './storage.server'
 
 process.env.VERABLOOM_ORDER_STORE = 'memory'
 
 const baseInput = {
   productNameSnapshot: 'ช่อทิวลิป ไซส์ M',
+  taskOwner: 'chompooh' as const,
   socialContact: 'mali.line',
   phone: '',
   requestDetails: 'Pink wrapping',
@@ -28,6 +35,7 @@ const baseInput = {
 describe('direct order management', () => {
   afterEach(() => {
     clearOrderMemoryForTests()
+    resetObjectStorageForTests()
   })
 
   it('accepts optional address and phone but requires the core order fields', () => {
@@ -59,6 +67,24 @@ describe('direct order management', () => {
     ).toBe(false)
   })
 
+  it('keeps the nullable product migration after the previous order migration', () => {
+    const journal = JSON.parse(
+      readFileSync(new URL('../../drizzle/meta/_journal.json', import.meta.url), 'utf8'),
+    ) as {
+      entries: Array<{ tag: string; when: number }>
+    }
+    const previousOrderMigration = journal.entries.find(
+      (entry) => entry.tag === '0006_task_owner_and_product_price',
+    )
+    const nullableProductMigration = journal.entries.find(
+      (entry) => entry.tag === '0007_heavy_colonel_america',
+    )
+
+    expect(nullableProductMigration?.when).toBeGreaterThan(
+      previousOrderMigration?.when ?? 0,
+    )
+  })
+
   it('creates an order without a catalog product or saved customer', async () => {
     const order = await createDirectOrder(baseInput)
 
@@ -71,9 +97,57 @@ describe('direct order management', () => {
     expect(order.phone).toBeNull()
     expect(order.orderAddress).toBeNull()
     expect(order.quantity).toBe(1)
-    expect(order.taskOwner).toBeNull()
+    expect(order.taskOwner).toBe('chompooh')
     expect(order.status).toBe('confirmed')
     expect(order.orderValueThb).toBe('1200.50')
+  })
+
+  it('stores a task owner and rejects unknown or missing owners', async () => {
+    expect(
+      directOrderSchema.safeParse({ ...baseInput, taskOwner: 'meen' }).success,
+    ).toBe(true)
+    expect(
+      directOrderSchema.safeParse({ ...baseInput, taskOwner: 'unknown' })
+        .success,
+    ).toBe(false)
+    expect(
+      directOrderSchema.safeParse({ ...baseInput, taskOwner: null }).success,
+    ).toBe(false)
+
+    const order = await createDirectOrder({
+      ...baseInput,
+      taskOwner: 'chompooh',
+    })
+    expect(order.taskOwner).toBe('chompooh')
+
+    const updated = await updateOrder(order.id, {
+      ...baseInput,
+      taskOwner: 'kan',
+    })
+    expect(updated.taskOwner).toBe('kan')
+  })
+
+  it('links an uploaded reference image to the order', async () => {
+    setObjectStorageForTests({
+      putObject: async () => {},
+      publicUrl: (key) => `https://cdn.example.test/${key}`,
+    })
+    const order = await createDirectOrder(baseInput)
+
+    const updated = await setOrderReferenceImage(
+      order.id,
+      'verabloom/orders/1/reference.png',
+    )
+
+    expect(updated.referenceImageObjectKey).toBe(
+      'verabloom/orders/1/reference.png',
+    )
+    expect(updated.referenceImageUrl).toBe(
+      'https://cdn.example.test/verabloom/orders/1/reference.png',
+    )
+    expect((await getOrderById(order.id))?.referenceImageObjectKey).toBe(
+      'verabloom/orders/1/reference.png',
+    )
   })
 
   it('updates only fields from the simplified form', async () => {

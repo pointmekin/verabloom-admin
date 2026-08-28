@@ -110,12 +110,12 @@ export function resetObjectStorageForTests() {
   localObjects.clear()
 }
 
-export async function uploadProductImageObject({
-  productId,
+async function uploadImageObject({
+  prefix,
   mimeType,
   base64,
 }: {
-  productId: number
+  prefix: string
   mimeType: string
   base64: string
 }) {
@@ -125,13 +125,45 @@ export async function uploadProductImageObject({
   const body = Buffer.from(base64, 'base64')
   if (body.byteLength > MAX_IMAGE_BYTES) throw new Error('Image is too large')
 
-  const objectKey = `verabloom/products/${productId}/${randomUUID()}.${extension}`
+  const objectKey = `${prefix}/${randomUUID()}.${extension}`
   const storage = getStorage()
   await storage.putObject({ key: objectKey, body, contentType: mimeType })
   return {
     objectKey,
     publicUrl: storage.publicUrl(objectKey),
   }
+}
+
+export function uploadProductImageObject({
+  productId,
+  mimeType,
+  base64,
+}: {
+  productId: number
+  mimeType: string
+  base64: string
+}) {
+  return uploadImageObject({
+    prefix: `verabloom/products/${productId}`,
+    mimeType,
+    base64,
+  })
+}
+
+export function uploadOrderImageObject({
+  orderId,
+  mimeType,
+  base64,
+}: {
+  orderId: number
+  mimeType: string
+  base64: string
+}) {
+  return uploadImageObject({
+    prefix: `verabloom/orders/${orderId}`,
+    mimeType,
+    base64,
+  })
 }
 
 export async function getLocalObject(key: string) {

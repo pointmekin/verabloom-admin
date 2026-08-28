@@ -1,0 +1,1 @@
+ALTER TABLE "orders" ADD COLUMN "reference_image_object_key" text;

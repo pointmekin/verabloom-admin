@@ -1,11 +1,12 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Save, Trash2 } from 'lucide-react'
+import { ArrowLeft, Save, Trash2, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import type { z } from 'zod'
 
 import { AdminHeader } from '#/components/admin-header'
 import { AdminPaymentsSection } from '#/components/admin-payments'
+import { OrderOwnerBadge } from '#/components/order-owner-badge'
 import { Alert, AlertDescription } from '#/components/ui/alert'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
@@ -25,6 +26,8 @@ import { Select, SelectItem } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
 import { useToast } from '#/components/ui/toast'
 import { requireAdmin } from '#/lib/admin-guard'
+import { TEAM_MEMBERS, teamMemberAccentClass } from '#/lib/team-members'
+import type { TeamMember } from '#/lib/team-members'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
 import type { AdminOrderStatus } from '#/server/admin-order'
@@ -37,6 +40,7 @@ import {
   orderUpdateSchema,
   saveAdminOrderFn,
   updateAdminOrderStatusFn,
+  uploadAdminOrderImageFn,
 } from '#/server/admin-order'
 import { listOrderPaymentsFn } from '#/server/admin-payment'
 
@@ -58,6 +62,7 @@ export const Route = createFileRoute('/admin/orders/$orderId')({
 })
 
 const ORDER_FIELDS = [
+  'taskOwner',
   'productNameSnapshot',
   'socialContact',
   'phone',
@@ -71,6 +76,7 @@ const ORDER_FIELDS = [
 type OrderField = (typeof ORDER_FIELDS)[number]
 
 const ORDER_FIELD_CONTROL_IDS: Record<OrderField, string> = {
+  taskOwner: 'order-owner',
   productNameSnapshot: 'order-flower-type',
   socialContact: 'order-line-name',
   phone: 'order-phone',
@@ -97,6 +103,8 @@ function orderFieldMessage(
   translate: (key: MessageKey) => string,
 ) {
   switch (field) {
+    case 'taskOwner':
+      return translate('taskOwnerRequired')
     case 'productNameSnapshot':
     case 'socialContact':
       return translate('requiredField')
@@ -115,6 +123,12 @@ function statusLabel(
 ) {
   return translate(`status_${status}` as MessageKey)
 }
+async function fileToBase64(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
 
 function AdminOrderEditor() {
   const { t } = useLocale()
@@ -131,12 +145,16 @@ function AdminOrderEditor() {
   const [requestDetails, setRequestDetails] = useState(
     order?.requestDetails ?? '',
   )
-  const [deliveryMethod, setDeliveryMethod] = useState<'postal' | 'messenger'>(
-    order?.deliveryMethod === 'postal' ? 'postal' : 'messenger',
-  )
+  const [deliveryMethod, setDeliveryMethod] = useState<
+    'postal' | 'messenger' | 'collection'
+  >(order?.deliveryMethod ?? 'messenger')
   const [orderAddress, setOrderAddress] = useState(order?.orderAddress ?? '')
   const [requiredDate, setRequiredDate] = useState(order?.requiredDate ?? '')
   const [orderValueThb, setOrderValueThb] = useState(order?.orderValueThb ?? '')
+  const [taskOwner, setTaskOwner] = useState<TeamMember | null>(
+    order?.taskOwner ?? null,
+  )
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [status, setStatus] = useState<AdminOrderStatus>(
     order?.status ?? 'pending_review',
   )
@@ -170,6 +188,7 @@ function AdminOrderEditor() {
       if (!isOrderField(field) || next[field]) continue
       next[field] = orderFieldMessage(field, t)
     }
+    console.log('reportIssues', issues, next)
     setFieldErrors(next)
     const firstField = ORDER_FIELDS.find((field) => next[field])
     setError(firstField ? next[firstField]! : t('checkForm'))
@@ -184,6 +203,7 @@ function AdminOrderEditor() {
     try {
       const input = {
         productNameSnapshot,
+        taskOwner,
         socialContact,
         phone,
         requestDetails,
@@ -199,19 +219,33 @@ function AdminOrderEditor() {
         reportIssues(parsed.error.issues)
         return
       }
+      let savedOrderId: number
       if (isNew) {
         const saved = await createAdminOrderFn({ data: parsed.data })
-        toast({ title: t('orderSaved'), kind: 'success' })
-        await navigate({
-          to: '/admin/orders/$orderId',
-          params: { orderId: String(saved.id) },
-        })
+        savedOrderId = saved.id
       } else {
         await saveAdminOrderFn({ data: { id: order!.id, ...parsed.data } })
-        toast({ title: t('orderSaved'), kind: 'success' })
+        savedOrderId = order!.id
+      }
+      if (imageFile) {
+        await uploadAdminOrderImageFn({
+          data: {
+            id: savedOrderId,
+            mimeType: imageFile.type,
+            base64: await fileToBase64(imageFile),
+          },
+        })
+      }
+      toast({ title: t('orderSaved'), kind: 'success' })
+      if (isNew) {
         await navigate({
           to: '/admin/orders/$orderId',
-          params: { orderId: String(order!.id) },
+          params: { orderId: String(savedOrderId) },
+        })
+      } else {
+        await navigate({
+          to: '/admin/orders/$orderId',
+          params: { orderId: String(savedOrderId) },
           replace: true,
         })
       }
@@ -355,6 +389,36 @@ function AdminOrderEditor() {
         ) : null}
 
         <form className="product-editor-form" onSubmit={submit}>
+          <Card className={`editor-card ${teamMemberAccentClass(taskOwner)}`}>
+            <div className="editor-card-heading">
+              <div>
+                <h2>{t('taskOwner')}</h2>
+                <OrderOwnerBadge owner={taskOwner} />
+              </div>
+            </div>
+            <div className="form-field owner-field-accent">
+              <Label htmlFor="order-owner">{t('taskOwner')}</Label>
+              <Select
+                id="order-owner"
+                value={taskOwner ?? ''}
+                onValueChange={(value) =>
+                  setTaskOwner(value ? (value as TeamMember) : null)
+                }
+              >
+                <SelectItem value="">{t('unassigned')}</SelectItem>
+                {TEAM_MEMBERS.map((member) => (
+                  <SelectItem key={member} value={member}>
+                    {t(`payer_${member}` as MessageKey)}
+                  </SelectItem>
+                ))}
+              </Select>
+              {fieldErrors.taskOwner ? (
+                <p className="field-error" role="alert">
+                  {fieldErrors.taskOwner}
+                </p>
+              ) : null}
+            </div>
+          </Card>
           {error ? (
             <Alert className="form-error" variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -412,11 +476,14 @@ function AdminOrderEditor() {
                   id="order-delivery"
                   value={deliveryMethod}
                   onValueChange={(value) =>
-                    setDeliveryMethod(value as 'postal' | 'messenger')
+                    setDeliveryMethod(
+                      value as 'postal' | 'messenger' | 'collection',
+                    )
                   }
                 >
                   <SelectItem value="messenger">{t('messenger')}</SelectItem>
                   <SelectItem value="postal">{t('postal')}</SelectItem>
+                  <SelectItem value="collection">{t('collection')}</SelectItem>
                 </Select>
               </div>
               <div className="form-field">
@@ -468,6 +535,47 @@ function AdminOrderEditor() {
                 ) : null}
               </div>
             </div>
+          </Card>
+          <Card className="editor-card">
+            <div className="editor-card-heading">
+              <div>
+                <h2>{t('orderReferenceImage')}</h2>
+                <p>{t('orderReferenceImageHint')}</p>
+              </div>
+              <label className="upload-button">
+                <Upload aria-hidden="true" size={15} />
+                {t('uploadOrderImage')}
+                <input
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  aria-label={t('uploadOrderImage')}
+                  onChange={(event) => {
+                    setImageFile(event.target.files?.[0] ?? null)
+                    event.target.value = ''
+                  }}
+                  type="file"
+                />
+              </label>
+            </div>
+            {order?.referenceImageUrl ? (
+              <div className="order-reference-image">
+                <img
+                  src={order.referenceImageUrl}
+                  alt={t('orderReferenceImage')}
+                />
+              </div>
+            ) : null}
+            {imageFile ? (
+              <div>
+                <img
+                  className="pending-image"
+                  src={URL.createObjectURL(imageFile)}
+                  alt={t('selectedImage')}
+                />
+                <p className="pending-files">
+                  {t('selectedImage')}: {imageFile.name}
+                </p>
+              </div>
+            ) : null}
           </Card>
           <div className="editor-footer">
             <Button asChild type="button" variant="ghost">

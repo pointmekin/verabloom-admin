@@ -6,6 +6,7 @@ import { getDatabase } from '#/db'
 import { orders, products } from '#/db/schema'
 import { isTeamMember } from '#/lib/team-members'
 import type { TeamMember } from '#/lib/team-members'
+import { getObjectStorageUrl } from './storage.server'
 import { getCatalogProduct } from './catalog-store.server'
 import type { OrderRequestInput } from './order'
 
@@ -24,6 +25,8 @@ export type OrderRequest = {
   productNameSnapshot: string
   quantity: number
   taskOwner: TeamMember | null
+  referenceImageObjectKey: string | null
+  referenceImageUrl: string | null
   customerId: number | null
   customerName: string
   socialChannel: OrderRequestInput['socialChannel']
@@ -63,10 +66,11 @@ type LegacyOrderEditableInput = {
 
 export type OrderEditableInput = {
   productNameSnapshot: string
+  taskOwner: TeamMember
   socialContact: string
   phone?: string | null
   requestDetails: string
-  deliveryMethod: 'postal' | 'messenger'
+  deliveryMethod: 'postal' | 'messenger' | 'collection'
   orderAddress?: string | null
   requiredDate: string
   orderValueThb: string
@@ -130,6 +134,10 @@ function mapDatabaseOrder(row: typeof orders.$inferSelect): OrderRequest {
     productNameSnapshot: row.productNameSnapshot,
     quantity: row.quantity,
     taskOwner: isTeamMember(row.taskOwner) ? row.taskOwner : null,
+    referenceImageObjectKey: row.referenceImageObjectKey,
+    referenceImageUrl: row.referenceImageObjectKey
+      ? getObjectStorageUrl(row.referenceImageObjectKey)
+      : null,
     customerId: row.customerId,
     customerName: row.customerName,
     socialChannel: row.socialChannel as OrderRequestInput['socialChannel'],
@@ -159,8 +167,11 @@ function assertOrderFormInput(input: OrderEditableInput) {
   if (!input.socialContact.trim()) {
     throw new Error('LINE name is required')
   }
-  if (!['postal', 'messenger'].includes(input.deliveryMethod)) {
-    throw new Error('Choose messenger or postal delivery')
+  if (!isTeamMember(input.taskOwner)) {
+    throw new Error('Choose a task owner')
+  }
+  if (!['postal', 'messenger', 'collection'].includes(input.deliveryMethod)) {
+    throw new Error('Choose a valid delivery method')
   }
   if (!/^\d+(?:\.\d{1,2})?$/.test(input.orderValueThb.trim())) {
     throw new Error('Enter a valid Thai baht amount')
@@ -213,6 +224,8 @@ function memoryOrderFromProduct(
     productNameSnapshot: product.name,
     quantity,
     taskOwner: input.taskOwner,
+    referenceImageObjectKey: null,
+    referenceImageUrl: null,
     customerId: input.customerId ?? null,
     customerName: input.customerName,
     socialChannel: input.socialChannel,
@@ -316,7 +329,9 @@ export async function createDirectOrder(input: DirectOrderInput) {
       productId: null,
       productNameSnapshot: input.productNameSnapshot.trim(),
       quantity: 1,
-      taskOwner: null,
+      taskOwner: input.taskOwner,
+      referenceImageObjectKey: null,
+      referenceImageUrl: null,
       customerId: null,
       customerName: input.socialContact.trim(),
       socialChannel: 'line',
@@ -344,7 +359,7 @@ export async function createDirectOrder(input: DirectOrderInput) {
       productId: null,
       productNameSnapshot: input.productNameSnapshot.trim(),
       quantity: 1,
-      taskOwner: null,
+      taskOwner: input.taskOwner,
       customerId: null,
       customerName: input.socialContact.trim(),
       socialChannel: 'line',
@@ -457,6 +472,7 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
     const updated: OrderRequest = {
       ...existing,
       productNameSnapshot: input.productNameSnapshot.trim(),
+      taskOwner: input.taskOwner,
       customerName: input.socialContact.trim(),
       socialChannel: 'line',
       socialContact: input.socialContact.trim(),
@@ -485,7 +501,31 @@ export async function updateOrder(id: number, input: OrderEditableInput) {
       requiredDate: input.requiredDate,
       orderValueThb: input.orderValueThb.trim(),
       updatedAt: new Date(),
+      taskOwner: input.taskOwner,
     })
+    .where(eq(orders.id, id))
+    .returning()
+  if (updatedRows.length === 0) throw new Error('Order not found')
+  return mapDatabaseOrder(updatedRows[0])
+}
+export async function setOrderReferenceImage(id: number, objectKey: string) {
+  if (!objectKey.trim()) throw new Error('Image object key is required')
+  if (!useDatabase()) {
+    const existing = memory.orders.get(id)
+    if (!existing) throw new Error('Order not found')
+    const updated: OrderRequest = {
+      ...existing,
+      referenceImageObjectKey: objectKey,
+      referenceImageUrl: getObjectStorageUrl(objectKey),
+      updatedAt: new Date(),
+    }
+    memory.orders.set(id, updated)
+    return normalizeMemoryOrder(updated)
+  }
+
+  const updatedRows = await getDatabase()
+    .update(orders)
+    .set({ referenceImageObjectKey: objectKey, updatedAt: new Date() })
     .where(eq(orders.id, id))
     .returning()
   if (updatedRows.length === 0) throw new Error('Order not found')
