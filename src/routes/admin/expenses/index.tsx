@@ -40,10 +40,10 @@ import {
 import type { AdminExpensePayer } from '#/server/admin-expense'
 import { getPendingOrderCountFn } from '#/server/admin-order'
 import type { ExpenseRecord } from '#/server/expense-store.server'
-import { getRequiredAdminFn } from '#/server/auth'
+import { requireAdmin } from '#/lib/admin-guard'
 
 export const Route = createFileRoute('/admin/expenses/')({
-  beforeLoad: () => getRequiredAdminFn(),
+  beforeLoad: () => requireAdmin(),
   loader: async () => {
     const [expenses, pendingCount] = await Promise.all([
       listAdminExpensesFn(),

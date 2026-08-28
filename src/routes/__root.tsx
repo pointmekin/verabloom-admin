@@ -7,12 +7,17 @@ import {
 
 import { AppDevtools } from '#/components/devtools'
 import { ToastProvider } from '#/components/ui/toast'
-import { LocaleProvider } from '#/lib/i18n'
+import { LocaleProvider, readBrowserLocale } from '#/lib/i18n'
 import { getLocaleFn } from '#/server/locale'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
-  beforeLoad: async () => ({ locale: await getLocaleFn() }),
+  beforeLoad: async () => ({
+    locale:
+      typeof document === 'undefined'
+        ? await getLocaleFn()
+        : readBrowserLocale(),
+  }),
   head: () => ({
     meta: [
       {

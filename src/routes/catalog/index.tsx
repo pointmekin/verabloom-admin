@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { Flower2, Image as ImageIcon } from 'lucide-react'
 
 import { LanguageSwitcher } from '#/components/language-switcher'
@@ -6,6 +6,9 @@ import { useLocale } from '#/lib/i18n'
 import { listPublicCatalogFn } from '#/server/catalog'
 
 export const Route = createFileRoute('/catalog/')({
+  beforeLoad: () => {
+    throw redirect({ to: '/' })
+  },
   loader: async () => ({ products: await listPublicCatalogFn() }),
   component: CatalogPage,
 })

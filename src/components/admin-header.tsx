@@ -14,6 +14,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '#/components/ui/drawer'
+import { forgetAdminCheck } from '#/lib/admin-guard'
 import { useLocale } from '#/lib/i18n'
 import { logoutFn } from '#/server/auth'
 
@@ -24,6 +25,7 @@ export function AdminHeader({ pendingCount }: { pendingCount: number }) {
 
   async function logout() {
     await logoutFn()
+    forgetAdminCheck()
     await router.navigate({ to: '/admin/login' })
   }
 

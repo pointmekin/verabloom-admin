@@ -19,7 +19,7 @@ import {
   uploadProductImageFn,
 } from '#/server/catalog'
 import { getPendingOrderCountFn } from '#/server/admin-order'
-import { getRequiredAdminFn } from '#/server/auth'
+import { requireAdmin } from '#/lib/admin-guard'
 
 type EditableImage = {
   id?: number
@@ -33,7 +33,7 @@ type PendingImage = {
 }
 
 export const Route = createFileRoute('/admin/catalog/$productId')({
-  beforeLoad: () => getRequiredAdminFn(),
+  beforeLoad: () => requireAdmin(),
   loader: async ({ params }) => {
     const [product, pendingCount] = await Promise.all([
       params.productId === 'new'

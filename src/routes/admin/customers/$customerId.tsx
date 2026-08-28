@@ -30,14 +30,14 @@ import {
   saveAdminCustomerFn,
 } from '#/server/admin-customer'
 import { getPendingOrderCountFn } from '#/server/admin-order'
-import { getRequiredAdminFn } from '#/server/auth'
+import { requireAdmin } from '#/lib/admin-guard'
 
 function statusLabel(status: string, t: (key: MessageKey) => string) {
   return t(`status_${status}` as MessageKey)
 }
 
 export const Route = createFileRoute('/admin/customers/$customerId')({
-  beforeLoad: () => getRequiredAdminFn(),
+  beforeLoad: () => requireAdmin(),
   loader: async ({ params }) => {
     const [data, pendingCount] = await Promise.all([
       params.customerId === 'new'

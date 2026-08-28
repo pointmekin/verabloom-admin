@@ -44,10 +44,10 @@ import {
 } from '#/server/admin-customer'
 import { listOrderPaymentsFn } from '#/server/admin-payment'
 import type { AdminOrderStatus } from '#/server/admin-order'
-import { getRequiredAdminFn } from '#/server/auth'
+import { requireAdmin } from '#/lib/admin-guard'
 
 export const Route = createFileRoute('/admin/orders/$orderId')({
-  beforeLoad: () => getRequiredAdminFn(),
+  beforeLoad: () => requireAdmin(),
   loader: async ({ params }) => {
     const [order, customers, catalog, pendingCount, payments] =
       await Promise.all([

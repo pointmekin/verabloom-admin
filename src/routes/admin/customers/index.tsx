@@ -18,7 +18,7 @@ import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
 import { listAdminCustomersFn } from '#/server/admin-customer'
 import { getPendingOrderCountFn } from '#/server/admin-order'
-import { getRequiredAdminFn } from '#/server/auth'
+import { requireAdmin } from '#/lib/admin-guard'
 
 function channelLabel(channel: string, t: (key: MessageKey) => string) {
   return t(channel as MessageKey)
@@ -29,7 +29,7 @@ const customerSearchSchema = z.object({
 })
 
 export const Route = createFileRoute('/admin/customers/')({
-  beforeLoad: () => getRequiredAdminFn(),
+  beforeLoad: () => requireAdmin(),
   validateSearch: customerSearchSchema,
   loaderDeps: ({ search }) => search,
   loader: async ({ deps }) => {

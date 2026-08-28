@@ -515,6 +515,20 @@ const translations = {
 
 export type MessageKey = keyof (typeof translations)['th']
 
+export const localeCookieName = 'verabloom-locale'
+
+/**
+ * The locale cookie is readable in the browser, so the router does not need a
+ * server round trip to resolve the locale on each navigation.
+ */
+export function readBrowserLocale(): Locale {
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${localeCookieName}=([^;]*)`),
+  )
+  const value = match ? decodeURIComponent(match[1]) : undefined
+  return locales.includes(value as Locale) ? (value as Locale) : 'th'
+}
+
 type LocaleContextValue = {
   locale: Locale
   setLocale: (locale: Locale) => void

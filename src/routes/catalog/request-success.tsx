@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { Check, Flower2 } from 'lucide-react'
 import { z } from 'zod'
 
@@ -14,6 +14,9 @@ const successSearchSchema = z.object({
 })
 
 export const Route = createFileRoute('/catalog/request-success')({
+  beforeLoad: () => {
+    throw redirect({ to: '/' })
+  },
   validateSearch: successSearchSchema,
   loader: () => getSocialContactsFn(),
   component: RequestSuccessPage,

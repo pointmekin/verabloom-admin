@@ -20,10 +20,10 @@ import {
   setCatalogVisibilityFn,
 } from '#/server/catalog'
 import { getPendingOrderCountFn } from '#/server/admin-order'
-import { getRequiredAdminFn } from '#/server/auth'
+import { requireAdmin } from '#/lib/admin-guard'
 
 export const Route = createFileRoute('/admin/catalog/')({
-  beforeLoad: () => getRequiredAdminFn(),
+  beforeLoad: () => requireAdmin(),
   loader: async () => {
     const [products, pendingCount] = await Promise.all([
       listAdminCatalogFn(),

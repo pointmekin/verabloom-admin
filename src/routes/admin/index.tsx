@@ -17,12 +17,12 @@ import { Card } from '#/components/ui/card'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
 import { formatThb, satangToDecimalString } from '#/lib/money'
-import { getRequiredAdminFn } from '#/server/auth'
+import { requireAdmin } from '#/lib/admin-guard'
 import { getAdminDashboardFn } from '#/server/admin-finance'
 import { getPendingOrderCountFn } from '#/server/admin-order'
 
 export const Route = createFileRoute('/admin/')({
-  beforeLoad: () => getRequiredAdminFn(),
+  beforeLoad: () => requireAdmin(),
   loader: async () => {
     const [financials, pendingCount] = await Promise.all([
       getAdminDashboardFn(),

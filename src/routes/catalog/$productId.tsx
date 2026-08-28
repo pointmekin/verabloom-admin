@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { ArrowLeft, Flower2, Image as ImageIcon } from 'lucide-react'
 
 import { LanguageSwitcher } from '#/components/language-switcher'
@@ -13,6 +13,9 @@ function formatStartingPrice(value: string) {
 }
 
 export const Route = createFileRoute('/catalog/$productId')({
+  beforeLoad: () => {
+    throw redirect({ to: '/' })
+  },
   loader: async ({ params }) => {
     const id = Number(params.productId)
     if (!Number.isSafeInteger(id) || id < 1) return null
