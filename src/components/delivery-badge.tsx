@@ -13,15 +13,27 @@ const deliveryIcons = {
 
 interface DeliveryBadgeProps {
   method: DeliveryMethod
+  size?: 'default' | 'large'
   className?: string
 }
 
-export function DeliveryBadge({ method, className }: DeliveryBadgeProps) {
+export function DeliveryBadge({
+  method,
+  size = 'default',
+  className,
+}: DeliveryBadgeProps) {
   const { t } = useLocale()
   const Icon = deliveryIcons[method]
   return (
-    <span className={cn('delivery-chip', `delivery-${method}`, className)}>
-      <Icon aria-hidden="true" size={13} />
+    <span
+      className={cn(
+        'delivery-chip',
+        `delivery-${method}`,
+        size === 'large' && 'is-large',
+        className,
+      )}
+    >
+      <Icon aria-hidden="true" size={size === 'large' ? 15 : 13} />
       {t(method)}
     </span>
   )

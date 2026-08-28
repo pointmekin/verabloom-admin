@@ -33,3 +33,4 @@
 ## Comments
 
 - 2026-08-27: Implemented the authenticated orders and customers workflow, including search/filtering, lifecycle edits, customer linking/creation, address snapshots, exact-value confirmation validation, mobile-friendly lists, and destructive confirmation dialogs. Browser coverage remains deferred because `AGENTS.md` explicitly prohibits adding or running Playwright tests in the current verification path. Payment records remain scoped to issue 05.
+- 2026-08-28: Polished the orders list after a focused UX critique. The list now has a pending shortcut, visible active-filter recovery, differentiated no-match state, localized required dates, clear missing-value copy, and a compact mobile triage order that links from a larger request-reference target.

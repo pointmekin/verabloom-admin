@@ -7,6 +7,7 @@ import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
+import { Select, SelectItem } from '#/components/ui/select'
 import { useLocale } from '#/lib/i18n'
 import { getPublicProductFn } from '#/server/catalog'
 import { orderRequestSchema } from '#/server/order'
@@ -231,15 +232,15 @@ function OrderRequestPage() {
 
             <div className="form-field">
               <Label htmlFor="request-channel">{t('socialChannel')}</Label>
-              <select
+              <Select
                 id="request-channel"
                 name="socialChannel"
                 defaultValue="line"
               >
-                <option value="line">{t('line')}</option>
-                <option value="instagram">{t('instagram')}</option>
-                <option value="tiktok">{t('tiktok')}</option>
-              </select>
+                <SelectItem value="line">{t('line')}</SelectItem>
+                <SelectItem value="instagram">{t('instagram')}</SelectItem>
+                <SelectItem value="tiktok">{t('tiktok')}</SelectItem>
+              </Select>
               {fieldError('socialChannel')}
             </div>
 
@@ -282,16 +283,16 @@ function OrderRequestPage() {
           <Card className="request-card">
             <div className="form-field">
               <Label htmlFor="request-delivery">{t('deliveryMethod')}</Label>
-              <select
+              <Select
                 id="request-delivery"
                 name="deliveryMethod"
                 value={deliveryMethod}
-                onChange={(event) => setDeliveryMethod(event.target.value)}
+                onValueChange={setDeliveryMethod}
               >
-                <option value="postal">{t('postal')}</option>
-                <option value="messenger">{t('messenger')}</option>
-                <option value="collection">{t('collection')}</option>
-              </select>
+                <SelectItem value="postal">{t('postal')}</SelectItem>
+                <SelectItem value="messenger">{t('messenger')}</SelectItem>
+                <SelectItem value="collection">{t('collection')}</SelectItem>
+              </Select>
             </div>
 
             {deliveryMethod === 'messenger' ? (

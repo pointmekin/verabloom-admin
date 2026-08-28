@@ -8,22 +8,24 @@ import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '#/components/ui/dialog'
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '#/components/ui/drawer'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
-import { Select } from '#/components/ui/select'
+import { Select, SelectItem } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
+import { useToast } from '#/components/ui/toast'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
 import {
   deleteAdminCustomerFn,
+  customerInputSchema,
   getAdminCustomerFn,
   saveAdminCustomerFn,
 } from '#/server/admin-customer'
@@ -52,6 +54,7 @@ export const Route = createFileRoute('/admin/customers/$customerId')({
 
 function AdminCustomerEditor() {
   const { t } = useLocale()
+  const { toast } = useToast()
   const navigate = useNavigate()
   const { data, pendingCount } = Route.useLoaderData()
   const customer = data?.customer ?? null
@@ -68,23 +71,39 @@ function AdminCustomerEditor() {
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<'name' | 'socialContact', string>>
+  >({})
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSaving(true)
     setError(null)
+    setFieldErrors({})
     try {
-      const saved = await saveAdminCustomerFn({
-        data: {
-          id: customer?.id,
-          name,
-          socialChannel,
-          socialContact,
-          phone,
-          defaultAddress,
-        },
+      const parsed = customerInputSchema.safeParse({
+        id: customer?.id,
+        name,
+        socialChannel,
+        socialContact,
+        phone,
+        defaultAddress,
       })
+      if (!parsed.success) {
+        const next: Partial<Record<'name' | 'socialContact', string>> = {}
+        for (const issue of parsed.error.issues) {
+          const field = issue.path[0]
+          if ((field === 'name' || field === 'socialContact') && !next[field]) {
+            next[field] = t('requiredField')
+          }
+        }
+        setFieldErrors(next)
+        setError(t('checkForm'))
+        return
+      }
+      const saved = await saveAdminCustomerFn({ data: parsed.data })
+      toast({ title: t('customerSaved'), kind: 'success' })
       await navigate({
         to: '/admin/customers/$customerId',
         params: { customerId: String(saved.id) },
@@ -92,6 +111,7 @@ function AdminCustomerEditor() {
       })
     } catch {
       setError(t('saveError'))
+      toast({ title: t('saveError'), kind: 'error' })
     } finally {
       setSaving(false)
     }
@@ -102,13 +122,15 @@ function AdminCustomerEditor() {
     setSaving(true)
     try {
       await deleteAdminCustomerFn({ data: { id: customer.id } })
+      toast({ title: t('customerDeleted'), kind: 'success' })
       await navigate({ to: '/admin/customers' })
     } catch (cause) {
-      setError(
+      const message =
         cause instanceof Error && cause.message === 'Customer has orders'
           ? t('customerHasOrders')
-          : t('saveError'),
-      )
+          : t('saveError')
+      setError(message)
+      toast({ title: message, kind: 'error' })
       setSaving(false)
     } finally {
       setConfirmingDelete(false)
@@ -152,8 +174,13 @@ function AdminCustomerEditor() {
                 id="customer-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                required
+                aria-invalid={Boolean(fieldErrors.name)}
               />
+              {fieldErrors.name ? (
+                <p className="field-error" role="alert">
+                  {fieldErrors.name}
+                </p>
+              ) : null}
             </div>
             <div className="editor-columns">
               <div className="form-field">
@@ -161,13 +188,13 @@ function AdminCustomerEditor() {
                 <Select
                   id="customer-channel"
                   value={socialChannel}
-                  onChange={(event) =>
-                    setSocialChannel(event.target.value as typeof socialChannel)
+                  onValueChange={(value) =>
+                    setSocialChannel(value as typeof socialChannel)
                   }
                 >
-                  <option value="line">LINE</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="tiktok">TikTok</option>
+                  <SelectItem value="line">LINE</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
                 </Select>
               </div>
               <div className="form-field">
@@ -176,8 +203,13 @@ function AdminCustomerEditor() {
                   id="customer-contact"
                   value={socialContact}
                   onChange={(event) => setSocialContact(event.target.value)}
-                  required
+                  aria-invalid={Boolean(fieldErrors.socialContact)}
                 />
+                {fieldErrors.socialContact ? (
+                  <p className="field-error" role="alert">
+                    {fieldErrors.socialContact}
+                  </p>
+                ) : null}
               </div>
             </div>
             <div className="form-field">
@@ -212,20 +244,24 @@ function AdminCustomerEditor() {
             </Button>
           </div>
         </form>
-        <Dialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('confirmDeleteCustomer')}</DialogTitle>
-              <DialogDescription>
+        <Drawer
+          open={confirmingDelete}
+          onOpenChange={setConfirmingDelete}
+          snapPoints={['240px', 1]}
+        >
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>{t('confirmDeleteCustomer')}</DrawerTitle>
+              <DrawerDescription>
                 {t('deleteCustomerDescription')}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
+              </DrawerDescription>
+            </DrawerHeader>
+            <DrawerFooter>
+              <DrawerClose asChild>
                 <Button type="button" variant="outline">
                   {t('keepCustomer')}
                 </Button>
-              </DialogClose>
+              </DrawerClose>
               <Button
                 type="button"
                 variant="destructive"
@@ -234,9 +270,9 @@ function AdminCustomerEditor() {
               >
                 {t('deleteCustomer')}
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
         {customer ? (
           <Card className="editor-card customer-history">
             <div className="editor-card-heading">

@@ -12,6 +12,7 @@ import { useState } from 'react'
 import { AdminHeader } from '#/components/admin-header'
 import { Alert, AlertDescription } from '#/components/ui/alert'
 import { Button } from '#/components/ui/button'
+import { useToast } from '#/components/ui/toast'
 import { useLocale } from '#/lib/i18n'
 import {
   listAdminCatalogFn,
@@ -37,6 +38,7 @@ export const Route = createFileRoute('/admin/catalog/')({
 
 function AdminCatalogPage() {
   const { t } = useLocale()
+  const { toast } = useToast()
   const router = useRouter()
   const { products, pendingCount } = Route.useLoaderData()
   const [message, setMessage] = useState<string | null>(null)
@@ -56,6 +58,9 @@ function AdminCatalogPage() {
       await reorderCatalogProductsFn({ data: { orderedIds } })
       await router.invalidate()
       setMessage(t('reorderSaved'))
+      toast({ title: t('reorderSaved'), kind: 'success' })
+    } catch {
+      toast({ title: t('saveError'), kind: 'error' })
     } finally {
       setPending(false)
     }
@@ -67,6 +72,9 @@ function AdminCatalogPage() {
     try {
       await setCatalogVisibilityFn({ data: { id, visible: !visible } })
       await router.invalidate()
+      toast({ title: t('visibilitySaved'), kind: 'success' })
+    } catch {
+      toast({ title: t('saveError'), kind: 'error' })
     } finally {
       setPending(false)
     }

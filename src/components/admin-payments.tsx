@@ -6,18 +6,19 @@ import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '#/components/ui/dialog'
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '#/components/ui/drawer'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
-import { Select } from '#/components/ui/select'
+import { Select, SelectItem } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
+import { useToast } from '#/components/ui/toast'
 import { formatThb, orderTotals } from '#/lib/money'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
@@ -51,6 +52,7 @@ export function AdminPaymentsSection({
   payments,
 }: PaymentsSectionProps) {
   const { t } = useLocale()
+  const { toast } = useToast()
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -94,14 +96,13 @@ export function AdminPaymentsSection({
 
   function localizedError(cause: unknown) {
     const message = cause instanceof Error ? cause.message : ''
-    const key: MessageKey =
-      message.includes('valid Thai baht')
-        ? 'invalidPaymentAmount'
-        : message.includes('valid payment date')
-          ? 'invalidDate'
-          : message.includes('payment method')
-            ? 'checkForm'
-            : 'saveError'
+    const key: MessageKey = message.includes('valid Thai baht')
+      ? 'invalidPaymentAmount'
+      : message.includes('valid payment date')
+        ? 'invalidDate'
+        : message.includes('payment method')
+          ? 'checkForm'
+          : 'saveError'
     return t(key)
   }
 
@@ -121,13 +122,17 @@ export function AdminPaymentsSection({
       }
       if (editingId === null) {
         await addAdminPaymentFn({ data: { orderId, ...parsed.data } })
+        toast({ title: t('paymentSaved'), kind: 'success' })
       } else {
         await updateAdminPaymentFn({ data: { id: editingId, ...parsed.data } })
+        toast({ title: t('paymentSaved'), kind: 'success' })
       }
       setDialogOpen(false)
       await router.invalidate()
     } catch (cause) {
-      setError(localizedError(cause))
+      const message = localizedError(cause)
+      setError(message)
+      toast({ title: message, kind: 'error' })
     } finally {
       setSaving(false)
     }
@@ -137,10 +142,13 @@ export function AdminPaymentsSection({
     setSaving(true)
     try {
       await deleteAdminPaymentFn({ data: { id } })
+      toast({ title: t('paymentDeleted'), kind: 'success' })
       setConfirmingDeleteId(null)
       await router.invalidate()
     } catch (cause) {
-      setError(localizedError(cause))
+      const message = localizedError(cause)
+      setError(message)
+      toast({ title: message, kind: 'error' })
       setConfirmingDeleteId(null)
     } finally {
       setSaving(false)
@@ -159,14 +167,10 @@ export function AdminPaymentsSection({
       <div className="payments-summary">
         <div className="payments-summary-cell">
           <span className="payments-summary-label">{t('orderValueLabel')}</span>
-          <strong>
-            {orderValueThb ? formatThb(orderValueThb) : '—'}
-          </strong>
+          <strong>{orderValueThb ? formatThb(orderValueThb) : '—'}</strong>
         </div>
         <div className="payments-summary-cell">
-          <span className="payments-summary-label">
-            {t('totalReceived')}
-          </span>
+          <span className="payments-summary-label">{t('totalReceived')}</span>
           <strong>{formatThb(totals.receivedThb)}</strong>
         </div>
         <div className="payments-summary-cell">
@@ -200,7 +204,9 @@ export function AdminPaymentsSection({
               <div className="payment-item-main">
                 <strong>{formatThb(record.amountThb)}</strong>
                 <span>{record.paymentDate}</span>
-                <Badge variant="outline">{t(methodLabels[record.method])}</Badge>
+                <Badge variant="outline">
+                  {t(methodLabels[record.method])}
+                </Badge>
               </div>
               {record.note ? (
                 <p className="payment-note">{record.note}</p>
@@ -234,14 +240,18 @@ export function AdminPaymentsSection({
         </ul>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
+      <Drawer
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        snapPoints={['420px', 1]}
+      >
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>
               {editingId === null ? t('addPayment') : t('editPayment')}
-            </DialogTitle>
-            <DialogDescription>{t('paymentDescription')}</DialogDescription>
-          </DialogHeader>
+            </DrawerTitle>
+            <DrawerDescription>{t('paymentDescription')}</DrawerDescription>
+          </DrawerHeader>
           <form onSubmit={submit}>
             <div className="form-field">
               <Label htmlFor="payment-amount">{t('paymentAmount')}</Label>
@@ -267,15 +277,15 @@ export function AdminPaymentsSection({
               <Select
                 id="payment-method"
                 value={method}
-                onChange={(event) =>
-                  setMethod(event.target.value as AdminPaymentMethod)
+                onValueChange={(value) =>
+                  setMethod(value as AdminPaymentMethod)
                 }
               >
-                <option value="bank_transfer">
+                <SelectItem value="bank_transfer">
                   {t('method_bank_transfer')}
-                </option>
-                <option value="cash">{t('method_cash')}</option>
-                <option value="other">{t('method_other')}</option>
+                </SelectItem>
+                <SelectItem value="cash">{t('method_cash')}</SelectItem>
+                <SelectItem value="other">{t('method_other')}</SelectItem>
               </Select>
             </div>
             <div className="form-field">
@@ -286,56 +296,59 @@ export function AdminPaymentsSection({
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
               />
+              <p className="field-hint">{t('richTextHint')}</p>
             </div>
             {error ? (
               <p className="field-error" role="alert">
                 {error}
               </p>
             ) : null}
-            <DialogFooter>
-              <DialogClose asChild>
+            <DrawerFooter>
+              <DrawerClose asChild>
                 <Button type="button" variant="ghost">
                   {t('cancel')}
                 </Button>
-              </DialogClose>
+              </DrawerClose>
               <Button disabled={saving} type="submit">
                 {saving ? t('saving') : t('save')}
               </Button>
-            </DialogFooter>
+            </DrawerFooter>
           </form>
-        </DialogContent>
-      </Dialog>
+        </DrawerContent>
+      </Drawer>
 
-      <Dialog
+      <Drawer
         open={confirmingDeleteId !== null}
         onOpenChange={(open) => {
           if (!open) setConfirmingDeleteId(null)
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('confirmRemovePayment')}</DialogTitle>
-            <DialogDescription>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{t('confirmRemovePayment')}</DrawerTitle>
+            <DrawerDescription>
               {t('removePaymentDescription')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter>
+            <DrawerClose asChild>
               <Button type="button" variant="outline">
                 {t('keepPayment')}
               </Button>
-            </DialogClose>
+            </DrawerClose>
             <Button
               disabled={saving}
-              onClick={() => confirmingDeleteId !== null && remove(confirmingDeleteId)}
+              onClick={() =>
+                confirmingDeleteId !== null && remove(confirmingDeleteId)
+              }
               type="button"
               variant="destructive"
             >
               {t('removePayment')}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </Card>
   )
 }

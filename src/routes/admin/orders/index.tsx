@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { Flower2, Plus, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { AdminHeader } from '#/components/admin-header'
@@ -9,7 +9,7 @@ import { OrderOwnerBadge } from '#/components/order-owner-badge'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
-import { Select } from '#/components/ui/select'
+import { Select, SelectItem } from '#/components/ui/select'
 import {
   Table,
   TableBody,
@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { useLocale } from '#/lib/i18n'
-import type { MessageKey } from '#/lib/i18n'
+import type { Locale, MessageKey } from '#/lib/i18n'
 import { listAdminOrdersPageFn } from '#/server/admin-order'
 import type { AdminOrderStatus } from '#/server/admin-order'
 
@@ -52,12 +52,34 @@ function statusLabel(status: AdminOrderStatus, t: (key: MessageKey) => string) {
   return t(key)
 }
 
+function formatRequiredDate(value: string, locale: Locale) {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Bangkok',
+  }).format(new Date(Date.UTC(year, month - 1, day)))
+}
+
+function formatOrderValue(value: string | null) {
+  if (value === null) return null
+  const [whole, decimal] = value.split('.')
+  const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return `${formattedWhole}${decimal ? `.${decimal}` : ''} ฿`
+}
+
 function AdminOrdersPage() {
-  const { t } = useLocale()
+  const { locale, t } = useLocale()
   const router = useRouter()
   const { orders, pendingCount } = Route.useLoaderData()
   const search = Route.useSearch()
   const [query, setQuery] = useState(search.search)
+  const hasActiveFilters = Boolean(search.search || search.status)
+
+  useEffect(() => {
+    setQuery(search.search)
+  }, [search.search])
 
   function submitSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -71,10 +93,15 @@ function AdminOrdersPage() {
     void router.navigate({
       to: '/admin/orders',
       search: {
-        search: search.search,
+        search: query.trim(),
         status: status === 'all' ? undefined : (status as AdminOrderStatus),
       },
     })
+  }
+
+  function clearFilters() {
+    setQuery('')
+    void router.navigate({ to: '/admin/orders', search: {} })
   }
 
   return (
@@ -83,7 +110,6 @@ function AdminOrdersPage() {
       <main className="admin-main orders-admin-main">
         <div className="admin-page-heading">
           <div>
-            <p className="eyebrow">{t('adminProtected')}</p>
             <h1>{t('orders')}</h1>
           </div>
           <Button asChild className="primary-button compact-button">
@@ -111,31 +137,63 @@ function AdminOrdersPage() {
             <span>{t('filterStatus')}</span>
             <Select
               aria-label={t('filterStatus')}
-              onChange={(event) => changeStatus(event.target.value)}
+              onValueChange={changeStatus}
               value={search.status ?? 'all'}
             >
-              <option value="all">{t('allStatuses')}</option>
-              <option value="pending_review">
+              <SelectItem value="all">{t('allStatuses')}</SelectItem>
+              <SelectItem value="pending_review">
                 {t('status_pending_review')}
-              </option>
-              <option value="confirmed">{t('status_confirmed')}</option>
-              <option value="work_in_progress">
+              </SelectItem>
+              <SelectItem value="confirmed">{t('status_confirmed')}</SelectItem>
+              <SelectItem value="work_in_progress">
                 {t('status_work_in_progress')}
-              </option>
-              <option value="completed">{t('status_completed')}</option>
-              <option value="cancelled">{t('status_cancelled')}</option>
+              </SelectItem>
+              <SelectItem value="completed">{t('status_completed')}</SelectItem>
+              <SelectItem value="cancelled">{t('status_cancelled')}</SelectItem>
             </Select>
           </label>
+          <Button
+            className="orders-pending-filter"
+            onClick={() => changeStatus('pending_review')}
+            size="sm"
+            type="button"
+            variant={
+              search.status === 'pending_review' ? 'secondary' : 'outline'
+            }
+          >
+            {t('viewPending')} {pendingCount}
+          </Button>
         </div>
+
+        {hasActiveFilters ? (
+          <div className="orders-filter-summary">
+            <span>
+              {orders.length} {t('ordersShown')}
+            </span>
+            <Button
+              onClick={clearFilters}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {t('clearOrderFilters')}
+            </Button>
+          </div>
+        ) : null}
 
         {orders.length === 0 ? (
           <div className="admin-empty">
             <Flower2 aria-hidden="true" size={30} />
-            <p>{t('noOrders')}</p>
+            <p>{hasActiveFilters ? t('noMatchingOrders') : t('noOrders')}</p>
+            {hasActiveFilters ? (
+              <Button onClick={clearFilters} type="button" variant="outline">
+                {t('clearOrderFilters')}
+              </Button>
+            ) : null}
           </div>
         ) : (
           <div className="orders-table-wrap">
-            <Table className="orders-table">
+            <Table className="orders-table orders-list-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('requestReference')}</TableHead>
@@ -156,6 +214,7 @@ function AdminOrdersPage() {
                         className="text-link"
                         to="/admin/orders/$orderId"
                         params={{ orderId: String(order.id) }}
+                        aria-label={`${t('openOrder')} ${order.requestReference}`}
                       >
                         {order.requestReference}
                       </Link>
@@ -174,10 +233,11 @@ function AdminOrdersPage() {
                       <DeliveryBadge method={order.deliveryMethod} />
                     </TableCell>
                     <TableCell data-label={t('requiredDate')}>
-                      {order.requiredDate}
+                      {formatRequiredDate(order.requiredDate, locale)}
                     </TableCell>
                     <TableCell data-label={t('orderValue')}>
-                      {order.orderValueThb ?? '—'} ฿
+                      {formatOrderValue(order.orderValueThb) ??
+                        t('valuePending')}
                     </TableCell>
                     <TableCell data-label={t('filterStatus')}>
                       <Badge

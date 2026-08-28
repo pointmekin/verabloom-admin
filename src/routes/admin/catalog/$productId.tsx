@@ -9,6 +9,7 @@ import { Card } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Textarea } from '#/components/ui/textarea'
+import { useToast } from '#/components/ui/toast'
 import { useLocale } from '#/lib/i18n'
 import { renderMarkdownToHtml } from '#/lib/markdown'
 import {
@@ -61,6 +62,7 @@ async function fileToBase64(file: File) {
 
 function AdminProductEditor() {
   const { t } = useLocale()
+  const { toast } = useToast()
   const navigate = useNavigate()
   const { product, pendingCount } = Route.useLoaderData()
   const isNew = product === null
@@ -108,7 +110,7 @@ function AdminProductEditor() {
     }
     const parsed = productInputSchema.safeParse(payload)
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Please check the form')
+      setError(t('checkForm'))
       return
     }
 
@@ -152,10 +154,11 @@ function AdminProductEditor() {
         setPendingImages([])
         setImages(saved.images)
       }
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Unable to save product',
-      )
+      toast({ title: t('productSaved'), kind: 'success' })
+    } catch {
+      const message = t('saveError')
+      setError(message)
+      toast({ title: message, kind: 'error' })
     } finally {
       setSaving(false)
     }
@@ -175,7 +178,7 @@ function AdminProductEditor() {
             <h1>{isNew ? t('addProduct') : t('editProduct')}</h1>
           </div>
         </div>
-        <form className="product-editor-form" onSubmit={submit}>
+        <form className="product-editor-form" noValidate onSubmit={submit}>
           {error ? (
             <Alert className="form-error" variant="destructive">
               <AlertDescription>{error}</AlertDescription>

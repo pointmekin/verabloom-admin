@@ -6,17 +6,17 @@ import { AdminHeader } from '#/components/admin-header'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '#/components/ui/dialog'
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '#/components/ui/drawer'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
-import { Select } from '#/components/ui/select'
+import { Select, SelectItem } from '#/components/ui/select'
 import {
   Table,
   TableBody,
@@ -26,6 +26,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { Textarea } from '#/components/ui/textarea'
+import { useToast } from '#/components/ui/toast'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
 import { formatThb } from '#/lib/money'
@@ -98,6 +99,7 @@ function fieldErrorMessage(
 
 function AdminExpensesPage() {
   const { t } = useLocale()
+  const { toast } = useToast()
   const router = useRouter()
   const { expenses, pendingCount } = Route.useLoaderData()
 
@@ -174,13 +176,16 @@ function AdminExpensesPage() {
     try {
       if (editingId === null) {
         await addAdminExpenseFn({ data: parsed.data })
+        toast({ title: t('expenseSaved'), kind: 'success' })
       } else {
         await updateAdminExpenseFn({ data: { id: editingId, ...parsed.data } })
+        toast({ title: t('expenseSaved'), kind: 'success' })
       }
       setDialogOpen(false)
       await router.invalidate()
     } catch {
       setFormError('saveError')
+      toast({ title: t('saveError'), kind: 'error' })
     } finally {
       setSaving(false)
     }
@@ -190,10 +195,12 @@ function AdminExpensesPage() {
     setSaving(true)
     try {
       await deleteAdminExpenseFn({ data: { id } })
+      toast({ title: t('expenseDeleted'), kind: 'success' })
       setConfirmingDeleteId(null)
       await router.invalidate()
     } catch {
       setFormError('saveError')
+      toast({ title: t('saveError'), kind: 'error' })
       setConfirmingDeleteId(null)
     } finally {
       setSaving(false)
@@ -297,16 +304,20 @@ function AdminExpensesPage() {
           </div>
         )}
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
+        <Drawer
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          snapPoints={['560px', 1]}
+        >
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>
                 {editingId === null ? t('addExpense') : t('editExpense')}
-              </DialogTitle>
-              <DialogDescription>
+              </DrawerTitle>
+              <DrawerDescription>
                 {t('expenseDialogDescription')}
-              </DialogDescription>
-            </DialogHeader>
+              </DrawerDescription>
+            </DrawerHeader>
             <form onSubmit={submit} noValidate>
               <div className="form-field">
                 <Label htmlFor="expense-description">
@@ -314,6 +325,7 @@ function AdminExpensesPage() {
                 </Label>
                 <Input
                   id="expense-description"
+                  aria-invalid={Boolean(fieldErrors.description)}
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                 />
@@ -327,14 +339,17 @@ function AdminExpensesPage() {
                 <Label htmlFor="expense-payer">{t('expensePayer')}</Label>
                 <Select
                   id="expense-payer"
+                  aria-invalid={Boolean(fieldErrors.payer)}
                   value={payer}
-                  onChange={(event) =>
-                    setPayer(event.target.value as AdminExpensePayer)
+                  onValueChange={(value) =>
+                    setPayer(value as AdminExpensePayer)
                   }
                 >
-                  <option value="chompooh">{t('payer_chompooh')}</option>
-                  <option value="meen">{t('payer_meen')}</option>
-                  <option value="kan">{t('payer_kan')}</option>
+                  <SelectItem value="chompooh">
+                    {t('payer_chompooh')}
+                  </SelectItem>
+                  <SelectItem value="meen">{t('payer_meen')}</SelectItem>
+                  <SelectItem value="kan">{t('payer_kan')}</SelectItem>
                 </Select>
                 {fieldErrors.payer ? (
                   <p className="field-error" role="alert">
@@ -346,6 +361,7 @@ function AdminExpensesPage() {
                 <Label htmlFor="expense-amount">{t('expenseAmount')}</Label>
                 <Input
                   id="expense-amount"
+                  aria-invalid={Boolean(fieldErrors.totalAmountThb)}
                   inputMode="decimal"
                   placeholder="0.00"
                   value={amount}
@@ -361,6 +377,7 @@ function AdminExpensesPage() {
                 <Label htmlFor="expense-date">{t('expenseDate')}</Label>
                 <Input
                   id="expense-date"
+                  aria-invalid={Boolean(fieldErrors.expenseDate)}
                   type="date"
                   value={expenseDate}
                   onChange={(event) => setExpenseDate(event.target.value)}
@@ -375,6 +392,7 @@ function AdminExpensesPage() {
                 <Label htmlFor="expense-quantity">{t('expenseQuantity')}</Label>
                 <Input
                   id="expense-quantity"
+                  aria-invalid={Boolean(fieldErrors.quantity)}
                   inputMode="numeric"
                   value={quantity}
                   onChange={(event) => setQuantity(event.target.value)}
@@ -390,10 +408,12 @@ function AdminExpensesPage() {
                 <Label htmlFor="expense-note">{t('expenseNote')}</Label>
                 <Textarea
                   id="expense-note"
+                  aria-invalid={Boolean(fieldErrors.note)}
                   rows={2}
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                 />
+                <p className="field-hint">{t('richTextHint')}</p>
                 {fieldErrors.note ? (
                   <p className="field-error" role="alert">
                     {fieldErrors.note}
@@ -405,41 +425,41 @@ function AdminExpensesPage() {
                   {t(formError)}
                 </p>
               ) : null}
-              <DialogFooter>
-                <DialogClose asChild>
+              <DrawerFooter>
+                <DrawerClose asChild>
                   <Button type="button" variant="ghost">
                     {t('cancel')}
                   </Button>
-                </DialogClose>
+                </DrawerClose>
                 <Button disabled={saving} type="submit">
                   {saving ? t('saving') : t('save')}
                 </Button>
-              </DialogFooter>
+              </DrawerFooter>
             </form>
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>
 
-        <Dialog
+        <Drawer
           open={confirmingDeleteId !== null}
           onOpenChange={(open) => {
             if (!open) setConfirmingDeleteId(null)
           }}
         >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('confirmRemoveExpense')}</DialogTitle>
-              <DialogDescription>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>{t('confirmRemoveExpense')}</DrawerTitle>
+              <DrawerDescription>
                 {confirmingDelete
                   ? `${confirmingDelete.description} · ${formatThb(confirmingDelete.totalAmountThb)} — ${t('removeExpenseDescription')}`
                   : t('removeExpenseDescription')}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
+              </DrawerDescription>
+            </DrawerHeader>
+            <DrawerFooter>
+              <DrawerClose asChild>
                 <Button type="button" variant="outline">
                   {t('keepExpense')}
                 </Button>
-              </DialogClose>
+              </DrawerClose>
               <Button
                 disabled={saving}
                 onClick={() =>
@@ -450,9 +470,9 @@ function AdminExpensesPage() {
               >
                 {t('removeExpense')}
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </main>
     </div>
   )

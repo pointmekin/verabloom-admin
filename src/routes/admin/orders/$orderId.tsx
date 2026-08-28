@@ -11,18 +11,19 @@ import { Alert, AlertDescription } from '#/components/ui/alert'
 import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '#/components/ui/dialog'
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '#/components/ui/drawer'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
-import { Select } from '#/components/ui/select'
+import { Select, SelectItem } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
+import { useToast } from '#/components/ui/toast'
 import { useLocale } from '#/lib/i18n'
 import type { MessageKey } from '#/lib/i18n'
 import { TEAM_MEMBERS, teamMemberAccentClass } from '#/lib/team-members'
@@ -152,6 +153,7 @@ function orderFieldMessage(
 
 function AdminOrderEditor() {
   const { t } = useLocale()
+  const { toast } = useToast()
   const navigate = useNavigate()
   const {
     order,
@@ -349,6 +351,7 @@ function AdminOrderEditor() {
           return
         }
         const saved = await createAdminOrderFn({ data: parsed.data })
+        toast({ title: t('orderSaved'), kind: 'success' })
         await navigate({
           to: '/admin/orders/$orderId',
           params: { orderId: String(saved.id) },
@@ -360,6 +363,7 @@ function AdminOrderEditor() {
           return
         }
         await saveAdminOrderFn({ data: { id: order!.id, ...parsed.data } })
+        toast({ title: t('orderSaved'), kind: 'success' })
         await navigate({
           to: '/admin/orders/$orderId',
           params: { orderId: String(order!.id) },
@@ -367,7 +371,9 @@ function AdminOrderEditor() {
         })
       }
     } catch (cause) {
-      setError(localizedError(cause))
+      const message = localizedError(cause)
+      setError(message)
+      toast({ title: message, kind: 'error' })
     } finally {
       setSaving(false)
     }
@@ -378,9 +384,12 @@ function AdminOrderEditor() {
     setSaving(true)
     try {
       await deleteAdminOrderFn({ data: { id: order.id } })
+      toast({ title: t('orderDeleted'), kind: 'success' })
       await navigate({ to: '/admin/orders' })
     } catch (cause) {
-      setError(localizedError(cause))
+      const message = localizedError(cause)
+      setError(message)
+      toast({ title: message, kind: 'error' })
       setSaving(false)
     } finally {
       setConfirmingDelete(false)
@@ -401,7 +410,7 @@ function AdminOrderEditor() {
             <h1>{isNew ? t('createOrder') : order!.requestReference}</h1>
             <div className="order-heading-badges">
               <OrderOwnerBadge owner={taskOwner || null} size="large" />
-              <DeliveryBadge method={deliveryMethod} />
+              <DeliveryBadge method={deliveryMethod} size="large" />
             </div>
           </div>
           {order ? (
@@ -433,15 +442,15 @@ function AdminOrderEditor() {
               <Select
                 id="order-owner"
                 value={taskOwner}
-                onChange={(event) =>
-                  setTaskOwner(event.target.value as TeamMember | '')
+                onValueChange={(value) =>
+                  setTaskOwner(value as TeamMember | '')
                 }
               >
-                <option value="">{t('unassigned')}</option>
+                <SelectItem value="">{t('unassigned')}</SelectItem>
                 {TEAM_MEMBERS.map((member) => (
-                  <option key={member} value={member}>
+                  <SelectItem key={member} value={member}>
                     {t(`payer_${member}` as MessageKey)}
-                  </option>
+                  </SelectItem>
                 ))}
               </Select>
               {fieldErrors.taskOwner ? (
@@ -463,13 +472,13 @@ function AdminOrderEditor() {
                 <Select
                   id="order-product"
                   value={productId}
-                  onChange={(event) => setProductId(event.target.value)}
+                  onValueChange={setProductId}
                 >
-                  <option value="">{t('selectedProduct')}</option>
+                  <SelectItem value="">{t('selectedProduct')}</SelectItem>
                   {catalog.map((item) => (
-                    <option key={item.id} value={item.id}>
+                    <SelectItem key={item.id} value={String(item.id)}>
                       {item.name}
-                    </option>
+                    </SelectItem>
                   ))}
                 </Select>
                 {fieldErrors.productId ? (
@@ -495,20 +504,24 @@ function AdminOrderEditor() {
                 ) : null}
               </div>
             </div>
-            <Dialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{t('confirmDeleteOrder')}</DialogTitle>
-                  <DialogDescription>
+            <Drawer
+              open={confirmingDelete}
+              onOpenChange={setConfirmingDelete}
+              snapPoints={['240px', 1]}
+            >
+              <DrawerContent>
+                <DrawerHeader>
+                  <DrawerTitle>{t('confirmDeleteOrder')}</DrawerTitle>
+                  <DrawerDescription>
                     {t('deleteOrderDescription')}
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <DialogClose asChild>
+                  </DrawerDescription>
+                </DrawerHeader>
+                <DrawerFooter>
+                  <DrawerClose asChild>
                     <Button type="button" variant="outline">
                       {t('keepOrder')}
                     </Button>
-                  </DialogClose>
+                  </DrawerClose>
                   <Button
                     type="button"
                     variant="destructive"
@@ -517,9 +530,9 @@ function AdminOrderEditor() {
                   >
                     {t('deleteOrder')}
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
           </Card>
           <Card className="editor-card">
             <div className="editor-card-heading">
@@ -551,15 +564,13 @@ function AdminOrderEditor() {
                   <Select
                     id="new-customer-channel"
                     value={newCustomerChannel}
-                    onChange={(event) =>
-                      setNewCustomerChannel(
-                        event.target.value as typeof newCustomerChannel,
-                      )
+                    onValueChange={(value) =>
+                      setNewCustomerChannel(value as typeof newCustomerChannel)
                     }
                   >
-                    <option value="line">LINE</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="tiktok">TikTok</option>
+                    <SelectItem value="line">LINE</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="tiktok">TikTok</SelectItem>
                   </Select>
                 </div>
                 <div className="form-field">
@@ -610,13 +621,13 @@ function AdminOrderEditor() {
               <Select
                 id="order-customer"
                 value={customerId}
-                onChange={(event) => chooseCustomer(event.target.value)}
+                onValueChange={chooseCustomer}
               >
-                <option value="">{t('noCustomerLinked')}</option>
+                <SelectItem value="">{t('noCustomerLinked')}</SelectItem>
                 {filteredCustomers.map((item) => (
-                  <option key={item.id} value={item.id}>
+                  <SelectItem key={item.id} value={String(item.id)}>
                     {item.name} · {item.socialContact}
-                  </option>
+                  </SelectItem>
                 ))}
               </Select>
             </div>
@@ -639,13 +650,13 @@ function AdminOrderEditor() {
                 <Select
                   id="order-channel"
                   value={socialChannel}
-                  onChange={(event) =>
-                    setSocialChannel(event.target.value as typeof socialChannel)
+                  onValueChange={(value) =>
+                    setSocialChannel(value as typeof socialChannel)
                   }
                 >
-                  <option value="line">LINE</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="tiktok">TikTok</option>
+                  <SelectItem value="line">LINE</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
                 </Select>
               </div>
             </div>
@@ -680,22 +691,28 @@ function AdminOrderEditor() {
                 <Select
                   id="order-status"
                   value={status}
-                  onChange={(event) =>
-                    setStatus(event.target.value as AdminOrderStatus)
+                  onValueChange={(value) =>
+                    setStatus(value as AdminOrderStatus)
                   }
                 >
-                  <option value="pending_review">
+                  <SelectItem value="pending_review">
                     {t('status_pending_review')}
-                  </option>
-                  <option value="confirmed">{t('status_confirmed')}</option>
-                  <option value="work_in_progress">
+                  </SelectItem>
+                  <SelectItem value="confirmed">
+                    {t('status_confirmed')}
+                  </SelectItem>
+                  <SelectItem value="work_in_progress">
                     {t('status_work_in_progress')}
-                  </option>
+                  </SelectItem>
                   {isNew ? null : (
-                    <option value="completed">{t('status_completed')}</option>
+                    <SelectItem value="completed">
+                      {t('status_completed')}
+                    </SelectItem>
                   )}
                   {isNew ? null : (
-                    <option value="cancelled">{t('status_cancelled')}</option>
+                    <SelectItem value="cancelled">
+                      {t('status_cancelled')}
+                    </SelectItem>
                   )}
                 </Select>
                 {fieldErrors.status ? (
@@ -728,8 +745,8 @@ function AdminOrderEditor() {
                 <Select
                   id="order-delivery"
                   value={deliveryMethod}
-                  onChange={(event) => {
-                    const method = event.target.value as typeof deliveryMethod
+                  onValueChange={(value) => {
+                    const method = value as typeof deliveryMethod
                     setDeliveryMethod(method)
                     if (isNew && method !== 'collection' && customerId) {
                       const selected = customers.find(
@@ -740,9 +757,9 @@ function AdminOrderEditor() {
                     }
                   }}
                 >
-                  <option value="postal">{t('postal')}</option>
-                  <option value="messenger">{t('messenger')}</option>
-                  <option value="collection">{t('collection')}</option>
+                  <SelectItem value="postal">{t('postal')}</SelectItem>
+                  <SelectItem value="messenger">{t('messenger')}</SelectItem>
+                  <SelectItem value="collection">{t('collection')}</SelectItem>
                 </Select>
                 <DeliveryBadge method={deliveryMethod} />
               </div>
@@ -789,9 +806,7 @@ function AdminOrderEditor() {
                     <Input
                       id="order-recipient-name"
                       value={recipientName}
-                      onChange={(event) =>
-                        setRecipientName(event.target.value)
-                      }
+                      onChange={(event) => setRecipientName(event.target.value)}
                     />
                     {fieldErrors.recipientName ? (
                       <p className="field-error" role="alert">
@@ -841,6 +856,7 @@ function AdminOrderEditor() {
                 value={requestDetails}
                 onChange={(event) => setRequestDetails(event.target.value)}
               />
+              <p className="field-hint">{t('richTextHint')}</p>
             </div>
             <div className="form-field">
               <Label htmlFor="order-note">{t('internalNote')}</Label>
@@ -850,6 +866,7 @@ function AdminOrderEditor() {
                 value={internalNote}
                 onChange={(event) => setInternalNote(event.target.value)}
               />
+              <p className="field-hint">{t('richTextHint')}</p>
             </div>
           </Card>
           <div className="editor-footer">

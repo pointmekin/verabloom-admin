@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import type { CustomerSocialChannel } from './customer-store.server'
 
-const customerInputSchema = z.object({
+export const customerInputSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
   name: z.string().trim().min(1).max(200),
   socialChannel: z.enum(['line', 'instagram', 'tiktok']),
