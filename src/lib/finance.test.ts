@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   bangkokTodayIso,
+  centralAccountBalanceThb,
   financeTotals,
   filterWithinPeriod,
   isWithinInclusivePeriod,
@@ -72,6 +73,13 @@ describe('netCashThb', () => {
 
   it('goes negative when expenses exceed income', () => {
     expect(netCashThb('100.00', '250.25')).toBe('-150.25')
+  })
+})
+
+describe('centralAccountBalanceThb', () => {
+  it('subtracts only payouts from received income', () => {
+    expect(centralAccountBalanceThb('1000.00', '300.50')).toBe('699.50')
+    expect(centralAccountBalanceThb('1000.00', '0.00')).toBe('1000.00')
   })
 })
 

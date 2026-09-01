@@ -59,7 +59,7 @@ export const getAdminFinanceReportFn = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     await assertAdmin()
     const [
-      { buildFinanceReport, joinPaymentsWithOrders },
+      { buildAllTimeFinanceReport, buildFinanceReport, joinPaymentsWithOrders },
       [payments, expenses, orders],
       payouts,
     ] = await Promise.all([
@@ -67,11 +67,19 @@ export const getAdminFinanceReportFn = createServerFn({ method: 'GET' })
       loadFinanceInputs(),
       listPayouts(),
     ])
-    return buildFinanceReport({
-      payments: joinPaymentsWithOrders(payments, orders),
-      expenses,
-      start: data.start,
-      end: data.end,
-      payouts,
-    })
+    const joinedPayments = joinPaymentsWithOrders(payments, orders)
+    return {
+      report: buildFinanceReport({
+        payments: joinedPayments,
+        expenses,
+        start: data.start,
+        end: data.end,
+        payouts,
+      }),
+      allTime: buildAllTimeFinanceReport({
+        payments: joinedPayments,
+        expenses,
+        payouts,
+      }),
+    }
   })

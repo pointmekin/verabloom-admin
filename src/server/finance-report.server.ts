@@ -53,6 +53,14 @@ export type FinanceReport = {
   teamMembers: TeamMemberTotals[]
 }
 
+export type AllTimeFinanceReport = Omit<FinanceReport, 'start' | 'end'>
+
+type FinanceReportInput = {
+  payments: FinancePaymentRow[]
+  expenses: ExpenseRecord[]
+  payouts?: PayoutRecord[]
+}
+
 export function buildDashboardFinancials(input: {
   payments: PaymentRecord[]
   expenses: ExpenseRecord[]
@@ -85,13 +93,30 @@ export function buildDashboardFinancials(input: {
   }
 }
 
-export function buildFinanceReport(input: {
-  payments: FinancePaymentRow[]
-  expenses: ExpenseRecord[]
-  payouts?: PayoutRecord[]
-  start: string
-  end: string
-}): FinanceReport {
+function buildFinanceReportData(
+  input: FinanceReportInput,
+): AllTimeFinanceReport {
+  const payouts = input.payouts ?? []
+  const receivedThb = receivedIncomeThb(input.payments)
+  const expensesThb = recordedExpensesThb(input.expenses)
+  const payoutsThb = recordedPayoutsThb(payouts)
+  return {
+    receivedThb,
+    expensesThb,
+    payoutsThb,
+    netCashThb: netCashThb(receivedThb, expensesThb),
+    centralAccountBalanceThb: centralAccountBalanceThb(receivedThb, payoutsThb),
+    payments: input.payments,
+    expenses: input.expenses,
+    payouts,
+    payoutRecipients: payoutRecipientTotals(payouts),
+    teamMembers: teamMemberTotals(input.expenses),
+  }
+}
+
+export function buildFinanceReport(
+  input: FinanceReportInput & { start: string; end: string },
+): FinanceReport {
   const payments = filterWithinPeriod(
     input.payments,
     (row) => row.paymentDate,
@@ -110,27 +135,17 @@ export function buildFinanceReport(input: {
     input.start,
     input.end,
   )
-  const receivedThb = receivedIncomeThb(payments)
-  const expensesThb = recordedExpensesThb(expenses)
-  const payoutsThb = recordedPayoutsThb(payouts)
   return {
     start: input.start,
     end: input.end,
-    receivedThb,
-    expensesThb,
-    payoutsThb,
-    netCashThb: netCashThb(receivedThb, expensesThb),
-    centralAccountBalanceThb: centralAccountBalanceThb(
-      receivedThb,
-      expensesThb,
-      payoutsThb,
-    ),
-    payments,
-    expenses,
-    payouts,
-    payoutRecipients: payoutRecipientTotals(payouts),
-    teamMembers: teamMemberTotals(expenses),
+    ...buildFinanceReportData({ payments, expenses, payouts }),
   }
+}
+
+export function buildAllTimeFinanceReport(
+  input: FinanceReportInput,
+): AllTimeFinanceReport {
+  return buildFinanceReportData(input)
 }
 
 export function joinPaymentsWithOrders(

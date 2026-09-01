@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  buildAllTimeFinanceReport,
   buildDashboardFinancials,
   buildFinanceReport,
 } from './finance-report.server'
@@ -8,7 +9,6 @@ import type { FinancePaymentRow } from './finance-report.server'
 import type { ExpenseRecord } from './expense-store.server'
 import type { PaymentRecord } from './payment-store.server'
 import type { PayoutRecord } from './payout-store.server'
-
 
 process.env.VERABLOOM_CATALOG_STORE = 'memory'
 process.env.VERABLOOM_ORDER_STORE = 'memory'
@@ -301,9 +301,11 @@ describe('buildFinanceReport', () => {
     ])
   })
 
-  it('deducts payouts from the central-account balance', () => {
+  it('calculates central-account balance from income minus payouts', () => {
     const report = buildFinanceReport({
-      payments: [joinedRow({ orderId: 1, amountThb: '500', paymentDate: '2026-08-01' })],
+      payments: [
+        joinedRow({ orderId: 1, amountThb: '500', paymentDate: '2026-08-01' }),
+      ],
       expenses: [
         expenseRecord({ totalAmountThb: '100', expenseDate: '2026-08-02' }),
       ],
@@ -313,7 +315,29 @@ describe('buildFinanceReport', () => {
     })
 
     expect(report.payoutsThb).toBe('250.00')
-    expect(report.centralAccountBalanceThb).toBe('150.00')
+    expect(report.centralAccountBalanceThb).toBe('250.00')
+  })
+
+  it('builds all-time totals and rows without date filtering', () => {
+    const report = buildAllTimeFinanceReport({
+      payments: [
+        joinedRow({ orderId: 1, amountThb: '500', paymentDate: '2026-07-31' }),
+        joinedRow({ orderId: 2, amountThb: '300', paymentDate: '2026-08-01' }),
+      ],
+      expenses: [
+        expenseRecord({ totalAmountThb: '100', expenseDate: '2026-07-01' }),
+        expenseRecord({ totalAmountThb: '50', expenseDate: '2026-08-02' }),
+      ],
+      payouts: [payoutRecord({ amountThb: '250', payoutDate: '2026-06-30' })],
+    })
+
+    expect(report.receivedThb).toBe('800.00')
+    expect(report.expensesThb).toBe('150.00')
+    expect(report.payoutsThb).toBe('250.00')
+    expect(report.centralAccountBalanceThb).toBe('550.00')
+    expect(report.payments).toHaveLength(2)
+    expect(report.expenses).toHaveLength(2)
+    expect(report.payouts).toHaveLength(1)
   })
 
   it('totals payouts per recipient inside the period', () => {

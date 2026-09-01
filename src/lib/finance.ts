@@ -79,13 +79,11 @@ export function netCashThb(receivedThb: string, expensesThb: string) {
 
 export function centralAccountBalanceThb(
   receivedThb: string,
-  expensesThb: string,
   payoutsThb: string,
 ) {
   const received = requireSatang(receivedThb)
-  const expenses = requireSatang(expensesThb)
   const payouts = requireSatang(payoutsThb)
-  return satangToDecimalString(received - expenses - payouts)
+  return satangToDecimalString(received - payouts)
 }
 
 export function outstandingTotalThb(orders: readonly OrderWithPaymentsLike[]) {

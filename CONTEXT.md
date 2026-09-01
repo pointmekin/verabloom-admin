@@ -117,7 +117,7 @@ The account owned by Meen that receives recorded payments and sends payouts.
 _Avoid_: Expense account, payout recipient
 
 **Central account balance**:
-Received income minus recorded expenses and payouts for the selected reporting period.
+Received income minus payouts for the selected reporting period or all time. Expenses remain separate because they are paid by team members, not from the central account.
 _Avoid_: Net cash, profit
 
 **Team member**:

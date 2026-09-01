@@ -238,6 +238,9 @@ const translations = {
     keepExpense: 'เก็บรายจ่ายไว้',
     manage: 'จัดการ',
     finance: 'การเงิน',
+    financeView: 'มุมมองการเงิน',
+    allTime: 'ทั้งหมดตลอดเวลา',
+    selectedDateRange: 'ช่วงวันที่เลือก',
     receivedIncome: 'รายได้ที่ได้รับ',
     totalExpenses: 'รายจ่ายรวม',
     netCash: 'เงินสดสุทธิ',
@@ -268,6 +271,7 @@ const translations = {
     viewOrder: 'เปิดดูคำสั่งซื้อ',
     noPaymentsInPeriod: 'ไม่มีการชำระเงินในช่วงนี้',
     noExpensesInPeriod: 'ไม่มีรายจ่ายในช่วงนี้',
+    expensesPaidAllTime: 'รายจ่ายที่แต่ละคนจ่ายทั้งหมด',
     payouts: 'รายการจ่ายเงิน',
     recordPayout: 'บันทึกการจ่ายเงิน',
     payoutDescription: 'บันทึกเงินที่โอนจากบัญชีกลางให้สมาชิกทีม',
@@ -279,6 +283,7 @@ const translations = {
     editPayout: 'แก้ไขรายการจ่ายเงิน',
     payoutUpdated: 'อัปเดตรายการจ่ายเงินแล้ว',
     noPayoutsInPeriod: 'ไม่มีรายการจ่ายเงินในช่วงนี้',
+    noPayoutsAllTime: 'ยังไม่มีรายการจ่ายเงิน',
     centralAccountBalance: 'ยอดคงเหลือบัญชีกลาง',
   },
   en: {
@@ -540,6 +545,9 @@ const translations = {
     month_10: 'Oct',
     month_11: 'Nov',
     month_12: 'Dec',
+    financeView: 'Finance view',
+    allTime: 'All time',
+    selectedDateRange: 'Selected date range',
     reportingPeriod: 'Reporting period',
     financeReportHint:
       'Summarizes payments and expenses by their dates, inclusive of both boundary days.',
@@ -552,6 +560,7 @@ const translations = {
     viewOrder: 'Open order',
     noPaymentsInPeriod: 'No payments in this period',
     noExpensesInPeriod: 'No expenses in this period',
+    expensesPaidAllTime: 'Expenses each member paid all time',
     payouts: 'Payouts',
     recordPayout: 'Record payout',
     payoutDescription:
@@ -564,6 +573,7 @@ const translations = {
     editPayout: 'Edit payout',
     payoutUpdated: 'Payout updated',
     noPayoutsInPeriod: 'No payouts in this period',
+    noPayoutsAllTime: 'No payouts recorded',
     centralAccountBalance: 'Central account balance',
   },
 } as const
