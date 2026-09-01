@@ -269,7 +269,7 @@ describe('buildFinanceReport', () => {
     expect(report.netCashThb).toBe('380.50')
   })
 
-  it('totals what each team member paid across every recorded expense', () => {
+  it('totals what each team member paid inside the reporting period', () => {
     const report = buildFinanceReport({
       payments: [],
       expenses: [
@@ -295,8 +295,8 @@ describe('buildFinanceReport', () => {
 
     expect(report.expensesThb).toBe('55.00')
     expect(report.teamMembers).toEqual([
-      { member: 'chompooh', paidThb: '345.00' },
-      { member: 'meen', paidThb: '838.84' },
+      { member: 'chompooh', paidThb: '55.00' },
+      { member: 'meen', paidThb: '0.00' },
       { member: 'kan', paidThb: '0.00' },
     ])
   })

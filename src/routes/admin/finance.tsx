@@ -236,7 +236,9 @@ function AdminFinancePage() {
           <div className="editor-card-heading">
             <h2>{t('byTeamMember')}</h2>
           </div>
-          <p className="field-hint">{t('allRecordedExpenses')}</p>
+          <p className="field-hint">
+            {t('expensesPaidInPeriod')}: {report.start} — {report.end}
+          </p>
           <div className="orders-table-wrap">
             <Table className="orders-table">
               <TableHeader>

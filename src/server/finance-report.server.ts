@@ -129,9 +129,7 @@ export function buildFinanceReport(input: {
     expenses,
     payouts,
     payoutRecipients: payoutRecipientTotals(payouts),
-    // Team members settle what they paid for the shop across every expense, so
-    // these totals cover all recorded expenses, not the reporting period.
-    teamMembers: teamMemberTotals(input.expenses),
+    teamMembers: teamMemberTotals(expenses),
   }
 }
 
