@@ -159,7 +159,7 @@ function AdminOrderEditor() {
   )
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [status, setStatus] = useState<AdminOrderStatus>(
-    order?.status ?? 'pending_review',
+    order?.status ?? 'work_in_progress',
   )
   const [statusSaving, setStatusSaving] = useState(false)
   const [statusError, setStatusError] = useState<string | null>(null)
@@ -170,7 +170,7 @@ function AdminOrderEditor() {
   >({})
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   useEffect(() => {
-    setStatus(order?.status ?? 'pending_review')
+    setStatus(order?.status ?? 'work_in_progress')
   }, [order?.id, order?.status])
   useEffect(() => {
     setTaskOwners(normalizeTeamMembers(order?.taskOwner))
@@ -360,12 +360,6 @@ function AdminOrderEditor() {
                     setStatus(value as AdminOrderStatus)
                   }
                 >
-                  <SelectItem value="pending_review">
-                    {t('status_pending_review')}
-                  </SelectItem>
-                  <SelectItem value="confirmed">
-                    {t('status_confirmed')}
-                  </SelectItem>
                   <SelectItem value="work_in_progress">
                     {t('status_work_in_progress')}
                   </SelectItem>

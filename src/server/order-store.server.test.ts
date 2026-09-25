@@ -120,7 +120,7 @@ describe('order request validation and store', () => {
       productId: product.id,
     })
 
-    expect(request.status).toBe('pending_review')
+    expect(request.status).toBe('work_in_progress')
     expect(request.requestReference).toBe('VB-000001')
     expect(request.productNameSnapshot).toBe('Spring bouquet')
     expect(request.taskOwner).toBeNull()

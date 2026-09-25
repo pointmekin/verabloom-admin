@@ -54,7 +54,7 @@ export const customers = pgTable('customers', {
 export const orders = pgTable('orders', {
   id: serial('id').primaryKey(),
   requestReference: text('request_reference').notNull().unique(),
-  status: text('status').notNull().default('pending_review'),
+  status: text('status').notNull().default('work_in_progress'),
   productId: integer('product_id').references(() => products.id, {
     onDelete: 'restrict',
   }),

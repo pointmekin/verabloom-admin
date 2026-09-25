@@ -130,11 +130,8 @@ const translations = {
     orderStatus: 'สถานะคำสั่งซื้อ',
 
     allStatuses: 'ทุกสถานะ',
-    viewPending: 'ดูรายการรอตรวจสอบ',
     ordersShown: 'รายการที่แสดง',
     clearOrderFilters: 'ล้างการค้นหาและสถานะ',
-    status_pending_review: 'รอตรวจสอบ',
-    status_confirmed: 'ยืนยันแล้ว',
     status_work_in_progress: 'กำลังจัดทำ',
     status_completed: 'เสร็จสิ้น',
     status_cancelled: 'ยกเลิก',
@@ -167,8 +164,6 @@ const translations = {
     orderValueHint: 'ต้องระบุเมื่อยืนยันคำสั่งซื้อ',
     confirmedValueRequired: 'กรุณาระบุมูลค่าก่อนยืนยันหรือทำให้เสร็จสิ้น',
     invalidOrderValue: 'กรุณาระบุมูลค่าเป็นตัวเลขทศนิยมไม่เกินสองตำแหน่ง',
-    directOrderStatus:
-      'คำสั่งซื้อใหม่เริ่มได้ที่รอตรวจสอบหรือยืนยันแล้วเท่านั้น',
     internalNote: 'บันทึกภายใน (ไม่แสดงต่อลูกค้า)',
     deleteOrder: 'ลบคำขอ/คำสั่งซื้อ',
     deleteCustomer: 'ลบลูกค้า',
@@ -413,11 +408,8 @@ const translations = {
     orderStatus: 'Order status',
 
     allStatuses: 'All statuses',
-    viewPending: 'View pending',
     ordersShown: 'orders shown',
     clearOrderFilters: 'Clear search and status',
-    status_pending_review: 'Pending review',
-    status_confirmed: 'Confirmed',
     status_work_in_progress: 'Work in progress',
     status_completed: 'Completed',
     status_cancelled: 'Cancelled',
@@ -451,8 +443,6 @@ const translations = {
     confirmedValueRequired:
       'Enter an order value before confirming or completing.',
     invalidOrderValue: 'Enter a number with no more than two decimal places.',
-    directOrderStatus:
-      'New orders can start as pending review or confirmed only.',
     internalNote: 'Internal note (never shown publicly)',
     deleteOrder: 'Delete request/order',
     deleteCustomer: 'Delete customer',

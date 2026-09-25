@@ -98,7 +98,7 @@ describe('direct order management', () => {
     expect(order.orderAddress).toBeNull()
     expect(order.quantity).toBe(1)
     expect(order.taskOwner).toBe('chompooh')
-    expect(order.status).toBe('confirmed')
+    expect(order.status).toBe('work_in_progress')
     expect(order.orderValueThb).toBe('1200.50')
   })
 
@@ -190,7 +190,7 @@ describe('direct order management', () => {
     expect(updated.orderAddress).toBe('12 Rose Road')
     expect(updated.phone).toBe('0812345678')
     expect(updated.orderValueThb).toBe('1500')
-    expect(updated.status).toBe('confirmed')
+    expect(updated.status).toBe('work_in_progress')
     expect((await getOrderById(order.id))?.productId).toBeNull()
   })
 
@@ -219,7 +219,6 @@ describe('direct order management', () => {
     ).toEqual([second.id])
     const page = await listOrderRequestsPage({ search: 'line' })
     expect(page.orders.map((order) => order.id)).toEqual([second.id, first.id])
-    expect(page.pendingCount).toBe(0)
 
     await expect(deleteOrder(first.id)).resolves.toBe(true)
     await expect(deleteOrder(second.id)).resolves.toBe(true)

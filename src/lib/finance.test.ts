@@ -88,10 +88,10 @@ describe('outstandingTotalThb', () => {
     expect(outstandingTotalThb([])).toBe('0.00')
   })
 
-  it('sums outstanding amounts of confirmed and completed orders', () => {
+  it('sums outstanding amounts of in-progress and completed orders', () => {
     expect(
       outstandingTotalThb([
-        order('confirmed', '1200', [payment('500')]),
+        order('work_in_progress', '1200', [payment('500')]),
         order('completed', '900', []),
       ]),
     ).toBe('1600.00')
@@ -100,8 +100,8 @@ describe('outstandingTotalThb', () => {
   it('floors each order at zero and never lets one order offset another', () => {
     expect(
       outstandingTotalThb([
-        order('confirmed', '1000', [payment('600'), payment('600')]),
-        order('confirmed', '700', []),
+        order('work_in_progress', '1000', [payment('600'), payment('600')]),
+        order('work_in_progress', '700', []),
       ]),
     ).toBe('700.00')
   })
@@ -110,7 +110,7 @@ describe('outstandingTotalThb', () => {
     expect(
       outstandingTotalThb([
         order('cancelled', '1500', [payment('800')]),
-        order('confirmed', '500', []),
+        order('work_in_progress', '500', []),
       ]),
     ).toBe('500.00')
   })
@@ -118,8 +118,8 @@ describe('outstandingTotalThb', () => {
   it('treats orders without a value as having no outstanding amount', () => {
     expect(
       outstandingTotalThb([
-        order('pending_review', null, [payment('100')]),
-        order('confirmed', '400', []),
+        order('work_in_progress', null, [payment('100')]),
+        order('work_in_progress', '400', []),
       ]),
     ).toBe('400.00')
   })
@@ -141,7 +141,7 @@ describe('financeTotals', () => {
       expenses: [expense('150.50'), expense('49.50')],
       orders: [
         order('cancelled', '2000', [payment('800')]),
-        order('confirmed', '1500', [payment('200')]),
+        order('work_in_progress', '1500', [payment('200')]),
       ],
     })
     expect(totals.receivedThb).toBe('1000.00')

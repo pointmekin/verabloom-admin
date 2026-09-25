@@ -1036,14 +1036,6 @@ a {
   font-size: 0.9rem;
   font-weight: 600;
 }
-.order-status-badge[data-status='pending_review'] {
-  color: var(--leaf-dark);
-  background: var(--blush-light);
-}
-.order-status-badge[data-status='confirmed'] {
-  color: var(--success);
-  background: var(--success-soft);
-}
 .order-status-badge[data-status='work_in_progress'] {
   color: var(--delivery-messenger);
   background: var(--delivery-messenger-soft);
@@ -1518,10 +1510,6 @@ a {
   border: 1px solid var(--line);
   border-radius: 0.7rem;
 }
-.orders-pending-filter {
-  min-height: 42px;
-  white-space: nowrap;
-}
 .orders-filter-summary {
   display: flex;
   align-items: center;
@@ -1916,9 +1904,6 @@ a {
     flex-direction: column;
   }
   .status-filter {
-    width: 100%;
-  }
-  .orders-pending-filter {
     width: 100%;
   }
   .orders-table-wrap {
