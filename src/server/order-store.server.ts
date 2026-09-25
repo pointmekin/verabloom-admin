@@ -11,8 +11,6 @@ import { getCatalogProduct } from './catalog-store.server'
 import type { OrderRequestInput } from './order'
 
 export type OrderStatus =
-  | 'pending_review'
-  | 'confirmed'
   | 'work_in_progress'
   | 'completed'
   | 'cancelled'
@@ -190,7 +188,6 @@ function taskOwnerValue(value: TeamMember | readonly TeamMember[]) {
 }
 
 const statusesRequiringValue: OrderStatus[] = [
-  'confirmed',
   'work_in_progress',
   'completed',
 ]
@@ -273,7 +270,7 @@ export async function createOrderRequest(
     recipientPhone: input.recipientPhone,
     orderAddress: input.orderAddress,
     requiredDate: input.requiredDate,
-    status: 'pending_review',
+    status: 'work_in_progress',
   }
 
   if (!useDatabase()) {
@@ -283,7 +280,7 @@ export async function createOrderRequest(
       product,
       editable,
       input.quantity,
-      'pending_review',
+      'work_in_progress',
     )
     memory.orders.set(order.id, order)
     return normalizeMemoryOrder(order)
@@ -301,7 +298,7 @@ export async function createOrderRequest(
       .insert(orders)
       .values({
         requestReference: `pending-${randomUUID()}`,
-        status: 'pending_review',
+        status: 'work_in_progress',
         productId: product.id,
         productNameSnapshot: product.name,
         quantity: input.quantity,
@@ -336,7 +333,7 @@ export async function createDirectOrder(input: DirectOrderInput) {
     const order: OrderRequest = {
       id,
       requestReference: requestReference(id),
-      status: 'confirmed',
+      status: 'work_in_progress',
       productId: null,
       productNameSnapshot: input.productNameSnapshot.trim(),
       quantity: 1,
@@ -366,7 +363,7 @@ export async function createDirectOrder(input: DirectOrderInput) {
     .insert(orders)
     .values({
       requestReference: `pending-${randomUUID()}`,
-      status: 'confirmed',
+      status: 'work_in_progress',
       productId: null,
       productNameSnapshot: input.productNameSnapshot.trim(),
       quantity: 1,
@@ -468,11 +465,7 @@ export async function listOrderRequestsPage(options?: {
   search?: string
   status?: OrderStatus
 }) {
-  const [matchingOrders, pendingOrders] = await Promise.all([
-    listOrderRequests(options),
-    listOrderRequests({ status: 'pending_review' }),
-  ])
-  return { orders: matchingOrders, pendingCount: pendingOrders.length }
+  return { orders: await listOrderRequests(options) }
 }
 
 export async function updateOrder(id: number, input: OrderEditableInput) {

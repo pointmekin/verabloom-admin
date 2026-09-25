@@ -13,8 +13,6 @@ const taskOwnerSchema = z.preprocess(
   z.array(taskOwnerMemberSchema).min(1, 'Choose a task owner'),
 )
 const statusSchema = z.enum([
-  'pending_review',
-  'confirmed',
   'work_in_progress',
   'completed',
   'cancelled',

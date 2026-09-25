@@ -1,8 +1,6 @@
 const bahtPattern = /^\d+(?:\.\d{1,2})?$/
 
 export type OrderStatusForTotals =
-  | 'pending_review'
-  | 'confirmed'
   | 'work_in_progress'
   | 'completed'
   | 'cancelled'

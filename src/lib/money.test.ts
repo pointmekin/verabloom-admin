@@ -8,12 +8,7 @@ import {
 } from './money'
 
 type OrderShape = {
-  status:
-    | 'pending_review'
-    | 'confirmed'
-    | 'work_in_progress'
-    | 'completed'
-    | 'cancelled'
+  status: 'work_in_progress' | 'completed' | 'cancelled'
   orderValueThb: string | null
 }
 
@@ -51,21 +46,21 @@ describe('satangToDecimalString', () => {
 })
 
 describe('orderTotals', () => {
-  const confirmed = (orderValueThb: string | null): OrderShape => ({
-    status: 'confirmed',
+  const inProgress = (orderValueThb: string | null): OrderShape => ({
+    status: 'work_in_progress',
     orderValueThb,
   })
 
   it('covers empty payments for an order without a value', () => {
     const totals = orderTotals(
-      { status: 'pending_review', orderValueThb: null },
+      { status: 'work_in_progress', orderValueThb: null },
       [],
     )
     expect(totals).toEqual({ receivedThb: '0.00', outstandingThb: '0.00' })
   })
 
   it('shows the full order value as outstanding with empty payments', () => {
-    const totals = orderTotals(confirmed('1200'), [])
+    const totals = orderTotals(inProgress('1200'), [])
     expect(totals.receivedThb).toBe('0.00')
     expect(totals.outstandingThb).toBe('1200.00')
   })
@@ -82,13 +77,13 @@ describe('orderTotals', () => {
   })
 
   it('subtracts a deposit from the outstanding amount', () => {
-    const totals = orderTotals(confirmed('1200'), [payment('500')])
+    const totals = orderTotals(inProgress('1200'), [payment('500')])
     expect(totals.receivedThb).toBe('500.00')
     expect(totals.outstandingThb).toBe('700.00')
   })
 
   it('sums multiple payments exactly', () => {
-    const totals = orderTotals(confirmed('1200.50'), [
+    const totals = orderTotals(inProgress('1200.50'), [
       payment('500'),
       payment('400.25'),
       payment('300.10'),
@@ -98,13 +93,13 @@ describe('orderTotals', () => {
   })
 
   it('clears the outstanding amount on full payment', () => {
-    const totals = orderTotals(confirmed('890'), [payment('889'), payment('1')])
+    const totals = orderTotals(inProgress('890'), [payment('889'), payment('1')])
     expect(totals.receivedThb).toBe('890.00')
     expect(totals.outstandingThb).toBe('0.00')
   })
 
   it('floors the outstanding amount at zero for overpayments', () => {
-    const totals = orderTotals(confirmed('1000'), [
+    const totals = orderTotals(inProgress('1000'), [
       payment('600'),
       payment('600'),
     ])
@@ -132,7 +127,7 @@ describe('orderTotals', () => {
 
   it('treats an order value recorded after confirmation as the basis once present', () => {
     const totals = orderTotals(
-      { status: 'pending_review', orderValueThb: '990.99' },
+      { status: 'work_in_progress', orderValueThb: '990.99' },
       [payment('90.98')],
     )
     expect(totals.outstandingThb).toBe('900.01')

@@ -20,13 +20,7 @@ import { requireAdmin } from '#/lib/admin-guard'
 const orderSearchSchema = z.object({
   search: z.string().optional().default(''),
   status: z
-    .enum([
-      'pending_review',
-      'confirmed',
-      'work_in_progress',
-      'completed',
-      'cancelled',
-    ])
+    .enum(['work_in_progress', 'completed', 'cancelled'])
     .optional(),
 })
 
@@ -63,7 +57,7 @@ function formatOrderValue(value: string | null) {
 function AdminOrdersPage() {
   const { locale, t } = useLocale()
   const router = useRouter()
-  const { orders, pendingCount } = Route.useLoaderData()
+  const { orders } = Route.useLoaderData()
   const search = Route.useSearch()
   const [query, setQuery] = useState(search.search)
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<number>>(
@@ -147,10 +141,6 @@ function AdminOrdersPage() {
               value={search.status ?? 'all'}
             >
               <SelectItem value="all">{t('allStatuses')}</SelectItem>
-              <SelectItem value="pending_review">
-                {t('status_pending_review')}
-              </SelectItem>
-              <SelectItem value="confirmed">{t('status_confirmed')}</SelectItem>
               <SelectItem value="work_in_progress">
                 {t('status_work_in_progress')}
               </SelectItem>
@@ -158,17 +148,6 @@ function AdminOrdersPage() {
               <SelectItem value="cancelled">{t('status_cancelled')}</SelectItem>
             </Select>
           </label>
-          <Button
-            className="orders-pending-filter"
-            onClick={() => changeStatus('pending_review')}
-            size="sm"
-            type="button"
-            variant={
-              search.status === 'pending_review' ? 'secondary' : 'outline'
-            }
-          >
-            {t('viewPending')} {pendingCount}
-          </Button>
         </div>
 
         {hasActiveFilters ? (

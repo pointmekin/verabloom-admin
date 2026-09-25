@@ -65,7 +65,7 @@ function payoutRecord(
 
 function orderRecord(
   id: number,
-  status: 'pending_review' | 'confirmed' | 'completed' | 'cancelled',
+  status: 'work_in_progress' | 'completed' | 'cancelled',
   orderValueThb: string | null,
 ) {
   return { id, status, orderValueThb }
@@ -152,8 +152,8 @@ describe('buildDashboardFinancials', () => {
       ],
       expenses: [],
       orders: [
-        orderRecord(1, 'confirmed', '1000'),
-        orderRecord(2, 'confirmed', '900'),
+        orderRecord(1, 'work_in_progress', '1000'),
+        orderRecord(2, 'work_in_progress', '900'),
       ],
     })
     expect(dashboard.receivedThb).toBe('1300.00')
@@ -178,7 +178,7 @@ describe('buildDashboardFinancials', () => {
       expenses: [
         expenseRecord({ totalAmountThb: '90', expenseDate: '2025-12-31' }),
       ],
-      orders: [orderRecord(1, 'confirmed', '1000')],
+      orders: [orderRecord(1, 'work_in_progress', '1000')],
     })
     expect(dashboard.receivedThb).toBe('750.00')
     expect(dashboard.months[0]).toEqual({

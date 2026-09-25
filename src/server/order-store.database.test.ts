@@ -16,7 +16,7 @@ delete process.env.VERABLOOM_CATALOG_STORE
 const existingRow = {
   id: 42,
   requestReference: 'VB-000042',
-  status: 'confirmed',
+  status: 'work_in_progress',
   productId: null,
   productNameSnapshot: 'Rose bouquet',
   quantity: 1,
