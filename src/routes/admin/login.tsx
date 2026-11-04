@@ -1,6 +1,11 @@
-import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  redirect,
+  useRouter,
+} from '@tanstack/react-router'
 import { ArrowLeft, Flower2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { LanguageSwitcher } from '#/components/language-switcher'
 import { Alert, AlertDescription } from '#/components/ui/alert'
@@ -9,15 +14,27 @@ import { Card } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { useLocale } from '#/lib/i18n'
-import { loginFn } from '#/server/auth'
+import { getAdminSessionFn, loginFn } from '#/server/auth'
 
-export const Route = createFileRoute('/admin/login')({ component: LoginPage })
+export const Route = createFileRoute('/admin/login')({
+  beforeLoad: async () => {
+    if ((await getAdminSessionFn()).authenticated) {
+      throw redirect({ to: '/admin' })
+    }
+  },
+  component: LoginPage,
+})
 
 function LoginPage() {
   const router = useRouter()
   const { t } = useLocale()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  // Before the page scripts load, the browser submits the form itself and
+  // puts the email and password in the address bar. Keep the button off until
+  // the submit handler exists.
+  const [ready, setReady] = useState(false)
+  useEffect(() => setReady(true), [])
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -85,7 +102,11 @@ function LoginPage() {
               </AlertDescription>
             </Alert>
           ) : null}
-          <Button className="primary-button" disabled={pending} type="submit">
+          <Button
+            className="primary-button"
+            disabled={pending || !ready}
+            type="submit"
+          >
             {pending ? t('signingIn') : t('signIn')}
           </Button>
         </form>

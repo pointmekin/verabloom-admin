@@ -9,11 +9,27 @@ const loginSchema = z.object({
 
 export const getRequiredAdminFn = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const { hasAdminSession } = await import('./auth-session.server')
+    const { hasAdminSession, markResponseUncacheable } = await import(
+      './auth-session.server'
+    )
+    markResponseUncacheable()
     if (!(await hasAdminSession())) {
       throw redirect({ to: '/admin/login' })
     }
     return { authenticated: true as const }
+  },
+)
+
+// Lets the login page send an admin who is already signed in to the admin
+// area. Without it, a signed-in admin who opens the login page from the public
+// site sees the sign-in form and believes the session ended.
+export const getAdminSessionFn = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const { hasAdminSession, markResponseUncacheable } = await import(
+      './auth-session.server'
+    )
+    markResponseUncacheable()
+    return { authenticated: await hasAdminSession() }
   },
 )
 

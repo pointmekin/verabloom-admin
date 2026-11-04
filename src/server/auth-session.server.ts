@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 import {
   getCookie,
   getSession,
+  setResponseHeader,
   updateSession,
   useSession,
 } from '@tanstack/react-start/server'
@@ -74,6 +75,15 @@ export async function hasAdminSession() {
     await updateSession<AdminSession>(config)
   }
   return true
+}
+
+/**
+ * The session check is a GET request with the same URL every time. A browser,
+ * proxy, or CDN that stored one "not signed in" answer could replay it to a
+ * signed-in admin. Mark every answer as not storable.
+ */
+export function markResponseUncacheable() {
+  setResponseHeader('Cache-Control', 'no-store')
 }
 
 export async function clearAdminSession() {
