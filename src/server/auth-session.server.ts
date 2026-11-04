@@ -1,8 +1,17 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 
-import { getCookie, useSession } from '@tanstack/react-start/server'
+import {
+  getCookie,
+  getSession,
+  updateSession,
+  useSession,
+} from '@tanstack/react-start/server'
 
-import { SESSION_COOKIE_NAME, createSessionConfig } from './session-config'
+import {
+  SESSION_COOKIE_NAME,
+  createSessionConfig,
+  shouldRefreshSession,
+} from './session-config'
 
 type AdminSession = {
   authenticated: true
@@ -24,10 +33,12 @@ function matchesSecret(value: string, expected: string) {
   return timingSafeEqual(valueHash, expectedHash)
 }
 
+function sessionConfig() {
+  return createSessionConfig(requiredEnvironment('SESSION_SECRET'))
+}
+
 async function adminSession() {
-  return useSession<AdminSession>(
-    createSessionConfig(requiredEnvironment('SESSION_SECRET')),
-  )
+  return useSession<AdminSession>(sessionConfig())
 }
 
 export async function authenticateAdmin(email: string, password: string) {
@@ -51,8 +62,18 @@ export async function hasAdminSession() {
   if (!getCookie(SESSION_COOKIE_NAME)) {
     return false
   }
-  const session = await adminSession()
-  return session.data.authenticated === true
+  const config = sessionConfig()
+  const session = await getSession<AdminSession>(config)
+  if (session.data.authenticated !== true) {
+    return false
+  }
+  if (shouldRefreshSession(session.createdAt)) {
+    // Start a new 30 day window. Both the cookie dates and the sealed
+    // expiry are based on `createdAt`.
+    session.createdAt = Date.now()
+    await updateSession<AdminSession>(config)
+  }
+  return true
 }
 
 export async function clearAdminSession() {
